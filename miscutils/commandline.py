@@ -17,6 +17,8 @@ colorama.init()
 
 FuncSig = TypeVar("FuncSig", bound=Callable)
 
+# TODO: implement commandline interaction interface creation API
+
 
 class Colorama:
     def __init__(self) -> None:
