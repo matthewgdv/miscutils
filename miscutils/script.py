@@ -56,7 +56,7 @@ class ScriptMeta(type):
         if name == "ScriptBase":
             return type.__new__(mcs, name, bases, namespace)
         else:
-            profiler = ScriptProfiler(printing=False)
+            profiler = ScriptProfiler()
 
             for attr, val in namespace.items():
                 if isinstance(val, FunctionType):
