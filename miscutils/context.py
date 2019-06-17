@@ -15,9 +15,9 @@ from .commandline import CommandLine
 class SysTrayApp:
     def __init__(self, hover_text: str = "Placeholder program description.", icon: PathLike = None, default_menu_index: int = 0, on_quit: Callable = None) -> None:
         from infi.systray import SysTrayIcon
-        from miscutils import resourcedir
+        from miscutils import res
 
-        icon = Maybe(icon).else_(resourcedir.f.python_icon)
+        icon = Maybe(icon).else_(res.f.python_icon)
         on_quit = Maybe(on_quit).else_(SysTrayApp._kill)
 
         self.tray = SysTrayIcon(icon=os.fspath(icon), hover_text=hover_text, on_quit=on_quit, default_menu_index=default_menu_index)

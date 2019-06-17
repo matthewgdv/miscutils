@@ -16,4 +16,4 @@ from .log import Log, PrintLog
 
 from pathmagic import File
 
-resourcedir = File(__file__).dir.newdir("resources")
+res = File(__file__).dir.newdir("res")
