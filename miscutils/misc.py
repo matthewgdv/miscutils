@@ -102,6 +102,12 @@ class EnVarsMeta(type):
         os.system(f"SET {key} {val}")
         os.system(f"SETX {key} {val}")
 
+    def __getattr__(self, attr: str) -> str:
+        return self[attr]
+
+    def __setattr__(self, attr: str, val: str) -> None:
+        self[attr] = val
+
     def keys(self) -> list:
         return list(os.environ)
 
