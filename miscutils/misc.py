@@ -9,6 +9,8 @@ from typing import Any, Optional, Tuple, Dict, cast
 from maybe import Maybe
 from subtypes import Str
 
+# TODO: Write a standard caching class
+
 
 def is_running_in_ipython() -> bool:
     try:
