@@ -13,7 +13,7 @@ from pathmagic import File, Dir, PathLike
 class Log:
     def __init__(self, logfile: PathLike, active: bool = True) -> None:
         self._path, self.user = logfile, getpass.getuser()
-        self._active = self._initilialized = False
+        self._active = self._initialized = False
 
         if active:
             self.activate()
@@ -33,10 +33,10 @@ class Log:
         if not self._active:
             self.file = File(self._path)
             self.file.force_read = True
-            if not self._initilialized:
+            if not self._initialized:
                 self.file.append(f"{'-' * 200}\n" if self.file.contents else "")
                 self.file.append(f"-- Process run by user: {self.user} at: {DateTime.now()}\n\n")
-                self._initilialized = True
+                self._initialized = True
 
             self._active = True
 

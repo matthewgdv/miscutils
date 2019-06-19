@@ -154,3 +154,16 @@ class NameSpace:
         super().__setattr__(key, val)
         if not key.startswith("_"):
             self._namespace[key] = val
+
+    def __len__(self) -> int:
+        return len(self._namespace)
+
+    def __iter__(self) -> NameSpace:
+        self.__iter = self._namespace.values()
+        return self
+
+    def __next__(self) -> Any:
+        return next(self.__iter)
+
+    def __contains__(self, other: Any) -> bool:
+        return other in set(self._namespace.keys())
