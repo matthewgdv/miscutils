@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Union, List, Tuple, Callable
 
-from miscutils import Str
+from subtypes import Str
 
 
 class NestedParser:

@@ -4,7 +4,8 @@ __all__ = [
     "Serializer", "ByteSerializer", "Secrets",
     "ScriptBase",
     "CommandLine",
-    "Log", "PrintLog"
+    "Log", "PrintLog",
+    "NestedParser"
 ]
 
 from pathmagic import File
@@ -18,3 +19,4 @@ if True:
     from .script import ScriptBase
     from .commandline import CommandLine
     from .log import Log, PrintLog
+    from .parser import NestedParser
