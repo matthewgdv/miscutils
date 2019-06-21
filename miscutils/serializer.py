@@ -33,10 +33,10 @@ class Serializer:
                         dill.dump(cleaned_object, filehandle, **kwargs)
 
     def deserialize(self, **kwargs: Any) -> Any:
-        if self.file:
+        try:
             with open(self.file, "rb") as filehandle:
                 return dill.load(filehandle, **kwargs)
-        else:
+        except EOFError:
             return None
 
     @staticmethod
