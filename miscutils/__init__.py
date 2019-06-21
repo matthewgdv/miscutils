@@ -5,7 +5,8 @@ __all__ = [
     "ScriptBase",
     "CommandLine",
     "Log", "PrintLog",
-    "NestedParser"
+    "NestedParser",
+    "Cache",
 ]
 
 from pathmagic import File
@@ -20,3 +21,4 @@ if True:
     from .commandline import CommandLine
     from .log import Log, PrintLog
     from .parser import NestedParser
+    from .cache import Cache
