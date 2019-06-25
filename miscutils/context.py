@@ -80,7 +80,7 @@ class Supressor:
 
 class PrintRedirector:
     def __init__(self, outfile: PathLike = None, append: bool = False, openfile: bool = True) -> None:
-        self.outfile = Dir.from_pathlike(outfile) if outfile is not None else matt.path.Dir.from_desktop().newfile("print_redirection.txt")
+        self.outfile = Dir.from_pathlike(outfile) if outfile is not None else Dir.from_desktop().newfile("print_redirection.txt")
         self.append, self.openfile = append, openfile
 
     def __enter__(self) -> PrintRedirector:
