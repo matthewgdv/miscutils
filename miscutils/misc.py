@@ -182,9 +182,9 @@ class NameSpace:
             self[key] = val
 
     def _remove_from_namespace(self, name: str) -> None:
-        delattr(self, name)
-        self._namespace[name].pop()
+        super().__delattr__(name)
+        self._namespace.pop(name)
 
     def _clear_namespace(self) -> None:
-        for name in self._namespace:
+        for name in list(self._namespace):
             del self[name]
