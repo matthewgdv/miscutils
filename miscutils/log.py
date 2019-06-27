@@ -32,7 +32,6 @@ class Log:
     def activate(self) -> None:
         if not self._active:
             self.file = File(self._path)
-            self.file.force_read = True
             if not self._initialized:
                 self.file.append(f"{'-' * 200}\n" if self.file.contents else "")
                 self.file.append(f"-- Process run by user: {self.user} at: {DateTime.now()}\n\n")
