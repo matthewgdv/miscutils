@@ -58,9 +58,6 @@ class Cache:
     def _save(self) -> None:
         self.serializer.serialize(self.contents)
 
-    def _get_lifespan(days: int, hours: int, minutes: int) -> DateTime:
-        return
-
     def _get_contents(self) -> None:
         contents = self.serializer.deserialize()
         if not contents:
@@ -75,4 +72,4 @@ class Cache:
             self.data: dict = {}
 
         def __bool__(self) -> bool:
-            return True if self.expiry is None else bool(self.data and DateTime.now() < self.expiry)
+            return True if self.expiry is None else DateTime.now() < self.expiry

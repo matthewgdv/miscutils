@@ -4,6 +4,7 @@ import functools
 import inspect
 import os
 from typing import Optional, Tuple, Dict, cast
+from math import inf as Infinity
 
 from maybe import Maybe
 
@@ -24,7 +25,7 @@ class Beep:
 
 @functools.total_ordering
 class Version:
-    inf = cast(int, float("inf"))
+    inf = cast(int, Infinity)
 
     def __init__(self, major: int, minor: int, micro: int, wildcard: str = None) -> None:
         self.wildcard = wildcard
@@ -68,16 +69,21 @@ class Version:
 
 
 class Counter:
-    def __init__(self, start_value: int = 0) -> None:
-        self.value = start_value
+    def __init__(self, start: int = 0, limit: int = Infinity) -> None:
+        self.start = self.value = start
+        self.limit = limit
 
     def __int__(self) -> int:
         return self.value
 
     def __iter__(self) -> Counter:
+        self.reset()
         return self
 
     def __next__(self) -> int:
+        if self.value >= self.limit:
+            raise StopIteration
+
         self.increment()
         return self.value
 
@@ -86,6 +92,9 @@ class Counter:
 
     def decrement(self, amount: int = 1) -> None:
         self.value -= amount
+
+    def reset(self) -> None:
+        self.value = self.start
 
 
 class EnVarsMeta(type):
