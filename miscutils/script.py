@@ -30,17 +30,17 @@ class ScriptProfiler:
             positional, keyword = ', '.join([repr(arg) for arg in args[1:]]), ', '.join([f'{name}={repr(val)}' for name, val in kwargs.items()])
             arguments = f"{positional}{f', ' if positional and keyword else ''}{keyword}"
 
-            with context(printing=False):
+            with context(to_console=False):
                 print(f"{self.prefix}{func.__name__}({arguments}) starting...")
 
             self.stack.increment()
 
-            with context(printing=True):
+            with context(to_console=True):
                 ret = func(*args, **kwargs)
 
             self.stack.decrement()
 
-            with context(printing=False):
+            with context(to_console=False):
                 print(f"{self.prefix}{func.__name__} finished in {timer} seconds, returning: {repr(ret)}. {f'State of the script object is now: {args[0]}' if isinstance(args[0], ScriptBase) else ''}")
 
             return ret

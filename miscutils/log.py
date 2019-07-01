@@ -21,6 +21,13 @@ class Log:
     def __repr__(self) -> str:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"
 
+    def __enter__(self) -> Log:
+        self.activate()
+        return self
+
+    def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
+        self.deactivate()
+
     @property
     def active(self) -> bool:
         return self._active
@@ -48,12 +55,12 @@ class Log:
         self.active = True
 
     def write(self, text: str, add_newlines: int = 2) -> None:
-        if self._active:
+        if self.active:
             br = "\n"
             self.file.contents += f"{text}{br * add_newlines}"
 
     def write_delimiter(self, length: int = 200, add_newlines: int = 2) -> None:
-        if self._active:
+        if self.active:
             br = "\n"
             self.file.contents += f"{'-' * length}{br * add_newlines}"
 
@@ -77,12 +84,12 @@ class PrintLog(Log):
     initial = sys.stdout
     stack: Any = []
 
-    def __init__(self, *args: Any, printing: bool = True, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, to_console: bool = True, to_file: bool = True, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.printing = printing
+        self.to_console, self.to_file = to_console, to_file
 
-    def __call__(self, printing: bool) -> PrintLog:
-        self.printing = printing
+    def __call__(self, to_console: bool = True, to_file: bool = True) -> PrintLog:
+        self.to_console, self.to_file = to_console, to_file
         return self
 
     def __enter__(self) -> PrintLog:
@@ -93,14 +100,15 @@ class PrintLog(Log):
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
         sys.stdout = self.stack.pop(-1)
 
-    def write(self, text: str) -> None:
-        if self.printing:
-            self.initial.write(text)
+    def write(self, text: str, to_console: bool = None, to_file: bool = None, add_newlines: int = 0) -> None:
+        if Maybe(to_console).else_(self.to_console):
+            self.initial.write(text + "\n"*add_newlines)
 
-        try:
-            super().write(text, add_newlines=0)
-        except UnicodeEncodeError:
-            pass
+        if Maybe(to_file).else_(self.to_file):
+            try:
+                super().write(text, add_newlines=add_newlines)
+            except UnicodeEncodeError:
+                pass
 
     def flush(self) -> None:
         self.initial.flush()
