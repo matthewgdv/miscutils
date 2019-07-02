@@ -48,7 +48,7 @@ class ScriptProfiler:
 
     @property
     def prefix(self) -> str:
-        return f"{DateTime.now().get_timestamp()} - {'    '*int(Maybe(self.stack).else_(0))}"
+        return f"{DateTime.now().logformat()} - {'    '*int(Maybe(self.stack).else_(0))}"
 
 
 class ScriptMeta(type):
