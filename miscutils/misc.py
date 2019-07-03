@@ -7,6 +7,7 @@ from typing import Optional, Tuple, Dict, cast
 from math import inf as Infinity
 
 from maybe import Maybe
+from .singleton import Singleton
 
 
 def is_running_in_ipython() -> bool:
@@ -97,8 +98,8 @@ class Counter:
         self.value = self.start
 
 
-class EnVarsMeta(type):
-    def __call__(self) -> Dict[str, str]:  # type: ignore
+class EnvironmentVariables(Singleton):
+    def __call__(self) -> Dict[str, str]:
         return self.keys()
 
     def __getitem__(self, key: str) -> str:
@@ -117,10 +118,6 @@ class EnVarsMeta(type):
 
     def keys(self) -> list:
         return list(os.environ)
-
-
-class EnVars(metaclass=EnVarsMeta):
-    pass
 
 
 class WhoCalledMe:

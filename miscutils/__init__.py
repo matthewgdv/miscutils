@@ -1,6 +1,6 @@
 __all__ = [
     "Singleton",
-    "is_running_in_ipython", "Beep", "Version", "Counter", "EnVars", "WhoCalledMe", "NameSpace",
+    "is_running_in_ipython", "Beep", "Version", "Counter", "EnvironmentVariables", "WhoCalledMe", "NameSpace",
     "SysTrayApp", "Beep", "Timer", "Supressor", "PrintRedirector", "NullContext",
     "Serializer", "ByteSerializer", "Secrets",
     "ScriptBase",
@@ -18,7 +18,7 @@ resources = File(__file__).dir.newdir("res")
 
 if True:
     from .singleton import Singleton
-    from .misc import is_running_in_ipython, Beep, Version, Counter, EnVars, WhoCalledMe
+    from .misc import is_running_in_ipython, Beep, Version, Counter, EnvironmentVariables, WhoCalledMe
     from .context import SysTrayApp, Timer, Supressor, PrintRedirector, NullContext
     from .serializer import Serializer, ByteSerializer, Secrets
     from .script import ScriptBase
