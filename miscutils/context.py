@@ -7,17 +7,17 @@ import warnings
 from typing import Any, Callable
 
 from maybe import Maybe
-from pathmagic import Dir, PathLike
+from pathmagic import Dir, File, PathLike
 
+from miscutils import res
 from .commandline import CommandLine
 
 
 class SysTrayApp:
     def __init__(self, hover_text: str = "Placeholder program description.", icon: PathLike = None, default_menu_index: int = 0, on_quit: Callable = None) -> None:
         from infi.systray import SysTrayIcon
-        from miscutils import resources
 
-        icon = Maybe(icon).else_(resources.f.python_icon)
+        icon = Maybe(icon).else_(File.from_resource(package=res, name="python_icon", extension="py"))
         on_quit = Maybe(on_quit).else_(SysTrayApp._kill)
 
         self.tray = SysTrayIcon(icon=os.fspath(icon), hover_text=hover_text, on_quit=on_quit, default_menu_index=default_menu_index)
