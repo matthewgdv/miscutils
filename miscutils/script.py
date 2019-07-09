@@ -84,7 +84,7 @@ class ScriptMeta(type):
 
             now = DateTime.now()
             logs_dir = Dir.from_home().d.documents.newdir("Python").newdir("logs")
-            log_path = logs_dir.newdir(now.isoformat_date(dashes=True)).newdir(self.name).newfile(f"{now.hour}h {now.minute}m {now.second}s {now.microsecond}ms.txt")
+            log_path = logs_dir.newdir(now.isoformat_date(dashes=True)).newdir(self.name).newfile(f"[{now.hour}h {now.minute}m {now.second}s {now.microsecond}ms].txt")
             self.log = PrintLog(log_path)
 
             exception = None
