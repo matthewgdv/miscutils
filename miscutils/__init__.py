@@ -1,6 +1,6 @@
 __all__ = [
     "Singleton",
-    "is_running_in_ipython", "Beep", "Version", "Counter", "EnvironmentVariables", "WhoCalledMe", "NameSpace",
+    "is_running_in_ipython", "issubclass_safe", "Beep", "Version", "Counter", "EnvironmentVariables", "WhoCalledMe", "NameSpace",
     "SysTrayApp", "Beep", "Timer", "Supressor", "PrintRedirector", "NullContext",
     "Serializer", "ByteSerializer", "Secrets",
     "ScriptBase",
@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 from .singleton import Singleton
-from .misc import is_running_in_ipython, Beep, Version, Counter, EnvironmentVariables, WhoCalledMe
+from .misc import is_running_in_ipython, issubclass_safe, Beep, Version, Counter, EnvironmentVariables, WhoCalledMe
 from .context import SysTrayApp, Timer, Supressor, PrintRedirector, NullContext
 from .serializer import Serializer, ByteSerializer, Secrets
 from .script import ScriptBase

@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import inspect
 import os
-from typing import Optional, Tuple, Dict, cast
+from typing import Optional, Tuple, Dict, Any, cast
 from math import inf as Infinity
 
 from maybe import Maybe
@@ -15,6 +15,13 @@ def is_running_in_ipython() -> bool:
         assert __IPYTHON__  # type: ignore
         return True
     except (NameError, AttributeError):
+        return False
+
+
+def issubclass_safe(candidate: Any, ancestor: Any) -> bool:
+    try:
+        return issubclass(candidate, ancestor)
+    except TypeError:
         return False
 
 
