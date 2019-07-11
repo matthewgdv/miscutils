@@ -41,17 +41,20 @@ class Serializer:
 
     @staticmethod
     def serializable_copy(obj: Any) -> Any:
-        if not hasattr(obj, "__dict__"):
-            return Serializer.LostObject(obj)
-        else:
-            copied_object = copy.copy(obj)
-            for key, val in copied_object.__dict__.items():
+        try:
+            return dill.copy(obj)
+        except TypeError:
+            if not hasattr(obj, "__dict__"):
+                return Serializer.LostObject(obj)
+            else:
                 try:
-                    dill.dumps(val)
+                    shallow_copy = copy.copy(obj)
                 except TypeError:
-                    setattr(copied_object, key, Serializer.LostObject(val))
-
-            return copied_object
+                    return Serializer.LostObject(obj)
+                else:
+                    for key, val in vars(shallow_copy).items():
+                        setattr(shallow_copy, key, Serializer.serializable_copy(val))
+                    return shallow_copy
 
     @staticmethod
     @contextlib.contextmanager
