@@ -25,6 +25,9 @@ class Cache:
         self.expiry = None if all([val is None for val in (days, hours, minutes)]) else DateTime.now().delta(days=Maybe(days).else_(0), hours=Maybe(hours).else_(0), minutes=Maybe(minutes).else_(0))
         self.contents = self._get_contents()
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"
+
     def __bool__(self) -> bool:
         return self.serializer and DateTime.now() < self.expiry
 
@@ -70,6 +73,9 @@ class Cache:
         def __init__(self, expires_on: DateTime) -> None:
             self.expiry = expires_on
             self.data: dict = {}
+
+        def __repr__(self) -> str:
+            return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.data.items()])})"
 
         def __bool__(self) -> bool:
             return True if self.expiry is None else DateTime.now() < self.expiry

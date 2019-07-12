@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import contextlib
 import functools
-import inspect
-import os
 import traceback
 from types import FunctionType
 from typing import Dict, Any, Type, cast, TypeVar, Callable
+import inspect
 
 from maybe import Maybe
-from subtypes import Str, DateTime
-from pathmagic import Dir
+from subtypes import DateTime
+from pathmagic import Dir, File
 
 from .misc import Counter
 from .context import Timer
@@ -20,13 +19,13 @@ FuncSig = TypeVar("FuncSig", bound=Callable)
 
 
 class ScriptProfiler:
-    def __init__(self, script: ScriptBase = None) -> None:
-        self.script, self.stack = script, Counter()
+    def __init__(self, log: ScriptBase = None) -> None:
+        self.log, self.stack = log, Counter()
 
     def __call__(self, func: FuncSig = None) -> FuncSig:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            timer, context = Timer(), Maybe(self.script).log.else_(contextlib.nullcontext())
+            timer, context = Timer(), Maybe(self.log).else_(contextlib.nullcontext())
             positional, keyword = ', '.join([repr(arg) for arg in args[1:]]), ', '.join([f'{name}={repr(val)}' for name, val in kwargs.items()])
             arguments = f"{positional}{f', ' if positional and keyword else ''}{keyword}"
 
@@ -61,31 +60,28 @@ class ScriptMeta(type):
             for attr, val in namespace.items():
                 if isinstance(val, FunctionType):
                     if attr == "__init__":
-                        namespace[attr] = mcs._set_script_attributes_and_serialize(profiler(val))
+                        namespace[attr] = mcs._constructor_wrapper(profiler(val))
                     else:
                         namespace[attr] = profiler(val)
 
             cls = cast(Type[ScriptBase], type.__new__(mcs, name, bases, namespace))
             cls._profiler = profiler
 
-            try:
-                cls.name = Str(os.path.basename(inspect.getfile(cls))).before_first(r"\.")
-            except TypeError:
-                cls.name = "LoadedScript"
-
             return cls
 
     @staticmethod
-    def _set_script_attributes_and_serialize(func: FuncSig) -> FuncSig:
+    def _constructor_wrapper(func: FuncSig) -> FuncSig:
         @functools.wraps(func)
         def wrapper(self: ScriptBase, run_mode: str = "smart", **arguments: Any) -> None:
-            self.name, self.run_mode, self.arguments = type(self).name, run_mode, arguments
-            self._profiler.script = self
+            self.name = File(inspect.getfile(type(self))).prename
+            self.run_mode, self.arguments = run_mode, arguments
 
             now = DateTime.now()
             logs_dir = Dir.from_home().d.documents.newdir("Python").newdir("logs")
-            log_path = logs_dir.newdir(now.isoformat_date(dashes=True)).newdir(self.name).newfile(f"[{now.hour}h {now.minute}m {now.second}s {now.microsecond}ms].txt")
+            log_path = logs_dir.newdir(now.isoformat_date()).newdir(self.name).newfile(f"[{now.hour}h {now.minute}m {now.second}s {now.microsecond}ms]", "txt")
             self.log = PrintLog(log_path)
+
+            self._profiler.log = self.log
 
             exception = None
 
@@ -93,10 +89,10 @@ class ScriptMeta(type):
                 func(self)
             except Exception as ex:
                 exception = ex
-                self.log.printing = False
+                self.log.to_console = False
                 self.log.write(traceback.format_exc())
 
-            self.log.file.newrename(f"{self.log.file.prename}.pkl").contents = self
+            self.log.file.newrename(self.log.file.prename, "pkl").contents = self
 
             if exception is not None:
                 raise exception
@@ -109,7 +105,6 @@ class ScriptBase(metaclass=ScriptMeta):
     run_mode: str
     arguments: Dict[str, Any]
     log: PrintLog
-    _profiler: ScriptProfiler
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"

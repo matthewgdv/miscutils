@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import base64
-import contextlib
 import copy
 import os
-from typing import Any, Iterator
+from typing import Any
+import pickle
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
@@ -13,10 +13,46 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import dill
 from pathmagic import Dir
 
+from .singleton import Singleton
+
+
+class Lost(Singleton):
+    def __len__(self) -> int:
+        return 0
+
+    def __iter__(self) -> Lost:
+        return self
+
+    def __next__(self) -> Any:
+        return next(iter([]))
+
+    def __getattr__(self, name: str) -> Lost:
+        if name.startswith("__") and name.endswith("__"):
+            raise AttributeError(name)
+        else:
+            return self
+
+
+class LostObject:
+    def __init__(self, obj: Any) -> None:
+        self.repr = repr(obj)
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.repr})"
+
+    def __getattr__(self, name: str) -> Lost:
+        if name.startswith("__") and name.endswith("__"):
+            raise AttributeError(name)
+        else:
+            return Lost()
+
 
 class Serializer:
     def __init__(self, file: os.PathLike) -> None:
         self.file = file
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"
 
     def serialize(self, obj: Any, **kwargs: Any) -> None:
         try:
@@ -24,13 +60,8 @@ class Serializer:
                 dill.dump(obj, filehandle, **kwargs)
         except TypeError:
             cleaned_object = self.serializable_copy(obj)
-            try:
-                with open(self.file, "wb") as filehandle:
-                    dill.dump(cleaned_object, filehandle, **kwargs)
-            except TypeError:
-                with self._temporarily_discard_unpicklable_class_attributes(cleaned_object):
-                    with open(self.file, "wb") as filehandle:
-                        dill.dump(cleaned_object, filehandle, **kwargs)
+            with open(self.file, "wb") as filehandle:
+                dill.dump(cleaned_object, filehandle, **kwargs)
 
     def deserialize(self, **kwargs: Any) -> Any:
         try:
@@ -40,44 +71,54 @@ class Serializer:
             return None
 
     @staticmethod
-    def serializable_copy(obj: Any) -> Any:
-        try:
-            return dill.copy(obj)
-        except TypeError:
-            if not hasattr(obj, "__dict__"):
-                return Serializer.LostObject(obj)
+    def serializable_copy(item: Any) -> Any:
+        seen = {id(item)}
+
+        def recursively_strip_invalid(obj) -> Any:
+            seen.add(id(obj))
+            if Serializer._is_pickleable(obj):
+                return obj
             else:
-                try:
-                    shallow_copy = copy.copy(obj)
-                except TypeError:
-                    return Serializer.LostObject(obj)
+                if Serializer._is_endpoint(obj):
+                    return LostObject(obj)
                 else:
-                    for key, val in vars(shallow_copy).items():
-                        setattr(shallow_copy, key, Serializer.serializable_copy(val))
-                    return shallow_copy
+                    try:
+                        shallow_copy = copy.copy(obj)
+                    except TypeError:
+                        return LostObject(obj)
+                    else:
+                        all_attributes_serializable = True
+                        for key, val in vars(shallow_copy).items():
+                            if not Serializer._is_pickleable(val):
+                                try:
+                                    dill.dumps(val)
+                                except pickle.PicklingError:
+                                    setattr(shallow_copy, key, LostObject(val))
+                                except TypeError:
+                                    setattr(shallow_copy, key, LostObject(val) if id(val) in seen else recursively_strip_invalid(val))
+                                finally:
+                                    all_attributes_serializable = False
+
+                        return LostObject(obj) if all_attributes_serializable else shallow_copy
+
+        try:
+            initial_copy = copy.copy(item)
+        except TypeError:
+            return LostObject(item)
+        else:
+            return recursively_strip_invalid(initial_copy)
 
     @staticmethod
-    @contextlib.contextmanager
-    def _temporarily_discard_unpicklable_class_attributes(obj: Any) -> Iterator[None]:
-        unpicklable_attrs = {}
-        for key, val in obj.__class__.__dict__.items():
-            try:
-                dill.dumps(val)
-            except TypeError:
-                unpicklable_attrs[key] = val
-                setattr(type(obj), key, Serializer.LostObject(val))
+    def _is_pickleable(item: Any) -> bool:
+        try:
+            dill.dumps(item)
+            return True
+        except Exception:
+            return False
 
-        yield
-
-        for key, val in unpicklable_attrs.items():
-            setattr(type(obj), key, val)
-
-    class LostObject:
-        def __init__(self, obj: Any) -> None:
-            self.repr = repr(obj)
-
-        def __repr__(self) -> str:
-            return f"{type(self).__name__}({self.repr})"
+    @staticmethod
+    def _is_endpoint(item: Any) -> bool:
+        return not hasattr(item, "__dict__") or type(item).__setattr__ is not object.__setattr__
 
 
 class ByteSerializer:
