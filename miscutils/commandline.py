@@ -97,10 +97,12 @@ class CommandLine:
         print(df.to_ascii(fancy=fancy), end="\n\n")
 
         output, prompt = 0, f"Choose an option: 1-{len(choices)}. 'esc' to exit.\n"
-        while int(output) not in list(df.number):
-            output = int(input(prompt).strip())
-            if str(output) in ["esc", "quit", "bye", "stop", "help"]:
+        while output not in list(df.number):
+            output = input(prompt).strip()
+            if output in ["esc", "quit", "bye", "stop", "help"]:
                 raise KeyboardInterrupt()
+            else:
+                output = int(output)
 
         choice, = df[df.number == output].option
         return choice
