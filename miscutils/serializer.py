@@ -11,7 +11,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import dill
-from pathmagic import Dir
+from pathmagic import Dir, PathLike
 
 from .singleton import Singleton
 
@@ -55,20 +55,23 @@ class Serializer:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"
 
     def serialize(self, obj: Any, **kwargs: Any) -> None:
-        try:
-            with open(self.file, "wb") as filehandle:
-                dill.dump(obj, filehandle, **kwargs)
-        except TypeError:
-            cleaned_object = self.serializable_copy(obj)
-            with open(self.file, "wb") as filehandle:
-                dill.dump(cleaned_object, filehandle, **kwargs)
+        self.file.path.write_bytes(self.to_bytes(obj=obj, **kwargs))
 
     def deserialize(self, **kwargs: Any) -> Any:
         try:
-            with open(self.file, "rb") as filehandle:
-                return dill.load(filehandle, **kwargs)
+            return self.from_bytes(text=self.file.path.read_bytes(), **kwargs)
         except EOFError:
             return None
+
+    def to_bytes(self, obj: Any, **kwargs: Any) -> None:
+        try:
+            return dill.dumps(obj, **kwargs)
+        except TypeError:
+            cleaned_object = self.serializable_copy(obj)
+            return dill.dumps(cleaned_object, **kwargs)
+
+    def from_bytes(self, text: bytes, **kwargs: Any) -> Any:
+        return dill.loads(text, **kwargs)
 
     @staticmethod
     def serializable_copy(item: Any) -> Any:
@@ -121,38 +124,22 @@ class Serializer:
         return not hasattr(item, "__dict__") or type(item).__setattr__ is not object.__setattr__
 
 
-class ByteSerializer:
-    def __init__(self, contents: bytes = None) -> None:
-        self.contents = contents
-
-    def __call__(self, contents: bytes = None) -> ByteSerializer:
-        self.contents = contents
-        return self
-
-    def serialize(self, obj: Any) -> None:
-        self.contents = dill.dumps(obj)
-
-    def deserialize(self) -> Any:
-        return dill.loads(self.contents)
-
-
 class Secrets:
-    def __init__(self, file: os.PathLike) -> None:
-        self.pw = Dir.from_home().newfile("secrets.txt")
-        self.file_serializer, self.byte_serializer = Serializer(file), ByteSerializer()
+    def __init__(self, file: os.PathLike, key_path: PathLike = None, salt: bytes = b"") -> None:
+        self.pw = Dir.from_home().newfile("secrets", "txt") if key_path is None else key_path
+        self.serializer, self.salt = Serializer(file), salt
         self.fernet = self._generate_fernet()
 
     def provide_new_password(self, key: str) -> None:
         self.pw.contents = key
 
     def encrypt(self, obj: Any) -> None:
-        self.byte_serializer.serialize(obj)
-        self.file_serializer.serialize(self.fernet.encrypt(self.byte_serializer.contents))
+        self.serializer.file.path.write_bytes(self.fernet.encrypt(self.serializer.to_bytes(obj)))
 
     def decrypt(self) -> Any:
-        return self.byte_serializer(self.fernet.decrypt(self.file_serializer.deserialize())).deserialize()
+        return self.serializer.from_bytes(self.fernet.decrypt(self.serializer.file.path.read_bytes()))
 
     def _generate_fernet(self) -> Fernet:
-        kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=b"", iterations=100000, backend=default_backend())
+        kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=self.salt, iterations=100000, backend=default_backend())
         key = base64.urlsafe_b64encode(kdf.derive(self.pw.contents.encode()))
         return Fernet(key)

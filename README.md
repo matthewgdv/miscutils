@@ -1,19 +1,90 @@
 Overview
 ====================
 
-[overview]
+Provides a wide range of useful classes and functions:
+
+The `Cache` class
+--------------------
+* Serializes any python object that can be pickled by Dill into a file
+* Interface similar to a dict for interacting with the items in the cache: `Cache.put()`, `Cache.get()`, `Cache.pop()`, and `Cache.setdefault()`
+
+The `NameSpace` class
+--------------------
+* Allows its attributes to be accessed and modified using item access
+* Recursively replaces dicts with `NameSpace` instances when constructed
+* Implements iteration and membership test magic methods
+* `NameSpaceObject` class excludes underscore-prepended names from item access magic methods, useful for subclassing
+
+The `Serializer` class
+--------------------
+* Serialize/deserialize any object that is pickleable by Dill
+* Discard unpickleable attributes recursively and replace them with `LostObject` instances
+
+The `Secrets` class
+--------------------
+* Serialize, then encrypt any python object and write it to a file and vice-versa
+* Encryption key must be read from a file, by default '~/secrets.txt', and must be set before use
+
+The `Singleton` class
+--------------------
+* Inherit from it to implement singletons (subclasses of `Singleton` will return the same instance whenever constucted)
+
+The `CommandLine` class
+--------------------
+* Offer choices, allowing navigation using arrow keys
+* Supports multi-select
+* Offer YES/NO
+* Hide/show console
+* Clear existing lines from console
+
+The `NestedParser` class
+--------------------
+* Parse a string by user-specified opening/closing tokens, recursively
+* Can ignore tokens between specific tags (for example, within string quotation marks)
+* Return an object tree (currently traversal methods are limited)
+
+The `ScriptBase` class
+--------------------
+* Uses a metaclass that wraps every method in a profiler, showing duration and a repr() of the object after each method call
+* The writes profiling information and print statements to a log
+* Upon exiting the constructor, serializes the object to the same directory as the log
+* Any kwargs passed to the constructor are stored in the `ScriptBase.arguments` attribute
+* The `ScriptBase.name` attribute is automatically set to the name of the file the class is defined in
+* The `ScriptBase.run_mode` attribute is automatically 'smart' by default, but can be set as a constuctor kwarg, for use with `iotools`
+
+Context manager classes
+--------------------
+* `SysTrayApp` hides the console and runs a system tray app which can have its options customized with callbacks
+* `Timer` counts the time since it was instanciated, and prints it on exiting context
+* `Suppressor` supresses all console output and warnings on enter and resores it on exiting
+* `PrintRedirector` redirects stdout to a given file
+* `NullContext` will always return itself on attribute access, when called, and does nothing when used as a context manager
+
+Other misc classes
+--------------------
+* `Counter` is an object-oriented replacement for manipulating an integer var during iteration
+* `WhoCalledMe` can be dropped in to print out the call stack
+* `EnvironmentVariables` can be used on Windows to get and set environment variables permanently
+* `Beep` produces a beeping sound of variable duration on Windows
+* `Version` object to represent versions, with comparator magic methods and wildcard support
+
+Misc functions
+--------------------
+* `is_running_in_ipython` returns true if in an ipython session, else false
+* `issubclass_safe` is a version of the built-in `issubclass` that doesn't raise an error if the candidate is an instance rather than a class, just returns `False`
+
 
 Installation
 ====================
 
 To install use pip:
 
-    $ pip install [project_name]
+    $ pip install miscutils
 
 
 Or clone the repo:
 
-    $ git clone https://github.com/matthewgdv/[project_name].git
+    $ git clone https://github.com/matthewgdv/miscutils.git
     $ python setup.py install
 
 
