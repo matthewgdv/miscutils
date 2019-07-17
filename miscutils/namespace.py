@@ -7,13 +7,12 @@ from maybe import Maybe
 
 
 class BaseNameSpace(ABC):
-    def __init__(self, mappings: Dict[str, Any] = None, recursive: bool = True) -> None:
-        self.__dict__.update(Maybe(mappings).else_({}))
+    def __init__(self, mappings: Dict[str, Any] = None, **kwargs: Any) -> None:
+        self.__dict__.update({**Maybe(mappings).else_({}), **kwargs})
 
-        if recursive:
-            for key, val in vars(self).items():
-                if isinstance(val, dict):
-                    self[key] = type(self)(mappings=val, recursive=recursive)
+        for key, val in vars(self).items():
+            if isinstance(val, dict):
+                self[key] = type(self)(mappings=val)
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self])})"
@@ -45,8 +44,8 @@ class BaseNameSpace(ABC):
     def __contains__(self, other: Any) -> None:
         pass
 
-    def to_dict(self, recursive: bool = True) -> dict:
-        return {key: (val.to_dict(recursive=recursive) if recursive and isinstance(val, type(self)) else val) for key, val in self}
+    def to_dict(self) -> dict:
+        return {key: (val.to_dict() if isinstance(val, type(self)) else val) for key, val in self}
 
 
 class NameSpace(BaseNameSpace):
