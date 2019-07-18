@@ -31,7 +31,7 @@ The `Singleton` class
 
 The `CommandLine` class
 --------------------
-* Offer choices, allowing navigation using arrow keys
+* Offer choices inveractively on the console, allowing navigation using arrow keys
 * Supports multi-select
 * Offer YES/NO
 * Hide/show console
@@ -45,12 +45,12 @@ The `NestedParser` class
 
 The `ScriptBase` class
 --------------------
-* Uses a metaclass that wraps every method in a profiler, showing duration and a repr() of the object after each method call
-* The writes profiling information and print statements to a log
+* Uses a metaclass that wraps every method in a profiler, showing duration, arguments, and return value of each method call, and a repr() of the script object
+* Writes profiling information and print statements to a log
 * Upon exiting the constructor, serializes the object to the same directory as the log
 * Any kwargs passed to the constructor are stored in the `ScriptBase.arguments` attribute
 * The `ScriptBase.name` attribute is automatically set to the name of the file the class is defined in
-* The `ScriptBase.run_mode` attribute is automatically 'smart' by default, but can be set as a constuctor kwarg, for use with `iotools`
+* For use with `iotools.IOHandler`, the `ScriptBase.run_mode` attribute is automatically 'smart' by default, but can be set as a constuctor kwarg
 
 Context manager classes
 --------------------
@@ -58,11 +58,11 @@ Context manager classes
 * `Timer` counts the time since it was instanciated, and prints it on exiting context
 * `Suppressor` supresses all console output and warnings on enter and resores it on exiting
 * `PrintRedirector` redirects stdout to a given file
-* `NullContext` will always return itself on attribute access, when called, and does nothing when used as a context manager
+* `NullContext` will always return itself on attribute access or when called, and does nothing when used as a context manager or when attributes are set on it
 
 Other misc classes
 --------------------
-* `Counter` is an object-oriented replacement for manipulating an integer var during iteration
+* `Counter` is an object-oriented replacement for manipulating an integer var for iteration purposes
 * `WhoCalledMe` can be dropped in to print out the call stack
 * `EnvironmentVariables` can be used on Windows to get and set environment variables permanently
 * `Beep` produces a beeping sound of variable duration on Windows
@@ -70,7 +70,7 @@ Other misc classes
 
 Misc functions
 --------------------
-* `is_running_in_ipython` returns true if in an ipython session, else false
+* `is_running_in_ipython` returns `True` if in an ipython session, else `False`
 * `issubclass_safe` is a version of the built-in `issubclass` that doesn't raise an error if the candidate is an instance rather than a class, just returns `False`
 
 
