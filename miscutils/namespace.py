@@ -1,18 +1,35 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
+from collections.abc import Mapping, MutableSequence, Sequence
 
 from maybe import Maybe
 
 
 class BaseNameSpace(ABC):
-    def __init__(self, mappings: Dict[str, Any] = None, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        if len(args) > 1:
+            raise TypeError(f"{type(self).__name__} only accepts a single positional argument (of type collections.Mapping).")
+        else:
+            mappings = {} if not len(args) else args[0]
+
         self.__dict__.update({**Maybe(mappings).else_({}), **kwargs})
 
         for key, val in vars(self).items():
-            if isinstance(val, dict):
-                self[key] = type(self)(mappings=val)
+            if isinstance(val, Mapping):
+                self[key] = type(self)(val)
+            elif isinstance(val, (str, bytes)):
+                pass
+            elif isinstance(val, MutableSequence):
+                for index, item in enumerate(val):
+                    if isinstance(item, Mapping):
+                        val[index] = type(self)(item)
+            elif isinstance(val, Sequence):
+                try:
+                    self[key] = type(val)([type(self)(item) if isinstance(item, Mapping) else item for item in val])
+                except Exception:
+                    self[key] = tuple(type(self)(item) if isinstance(item, Mapping) else item for item in val)
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self])})"
