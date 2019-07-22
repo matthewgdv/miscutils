@@ -88,10 +88,10 @@ class NameSpace(BaseNameSpace):
 
 class NameSpaceObject(BaseNameSpace):
     def __getitem__(self, name: str) -> Any:
-        if name in self:
-            return getattr(self, name)
+        if name.startswith("_"):
+            raise ValueError(f"Cannot access private attribute '{name}' via item access.")
         else:
-            raise KeyError(f"Key '{name}' is not in {self}.")
+            return getattr(self, name)
 
     def __setitem__(self, name: str, val: Any) -> None:
         if name.startswith("_"):
@@ -100,10 +100,10 @@ class NameSpaceObject(BaseNameSpace):
             setattr(self, name, val)
 
     def __delitem__(self, name: str) -> None:
-        if name in self:
-            self.__delattr__(name)
+        if name.startswith("_"):
+            raise ValueError(f"Cannot delete private attribute '{name}' via item access deletion.")
         else:
-            raise KeyError(f"Key '{name}' is not in {self}.")
+            self.__delattr__(name)
 
     def __iter__(self) -> NameSpaceObject:
         self.__iter = iter(self.__namespace_attributes().items())
