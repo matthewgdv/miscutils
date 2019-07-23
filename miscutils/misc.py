@@ -81,6 +81,9 @@ class Counter:
         self.start = self.value = start
         self.limit = limit
 
+    def __str__(self) -> str:
+        return str(self.value)
+
     def __int__(self) -> int:
         return self.value
 
@@ -92,17 +95,21 @@ class Counter:
         if self.value >= self.limit:
             raise StopIteration
 
+        ret = self.value
         self.increment()
+        return ret
+
+    def increment(self, amount: int = 1) -> int:
+        self.value += amount
         return self.value
 
-    def increment(self, amount: int = 1) -> None:
-        self.value += amount
-
-    def decrement(self, amount: int = 1) -> None:
+    def decrement(self, amount: int = 1) -> nt:
         self.value -= amount
+        return self.value
 
-    def reset(self) -> None:
+    def reset(self) -> int:
         self.value = self.start
+        return self.value
 
 
 class EnvironmentVariables(Singleton):
