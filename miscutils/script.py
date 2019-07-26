@@ -19,7 +19,7 @@ FuncSig = TypeVar("FuncSig", bound=Callable)
 
 
 class ScriptProfiler:
-    def __init__(self, log: ScriptBase = None) -> None:
+    def __init__(self, log: PrintLog = None) -> None:
         self.log, self.stack = log, Counter()
 
     def __call__(self, func: FuncSig = None) -> FuncSig:

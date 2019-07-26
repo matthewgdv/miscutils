@@ -24,7 +24,7 @@ class Lost(Singleton):
         return self
 
     def __next__(self) -> Any:
-        return next(iter([]))
+        raise StopIteration
 
     def __getattr__(self, name: str) -> Lost:
         if name.startswith("__") and name.endswith("__"):
@@ -40,11 +40,25 @@ class LostObject:
     def __repr__(self) -> str:
         return f"{type(self).__name__}({self.repr})"
 
+    def __len__(self) -> int:
+        return 0
+
+    def __iter__(self) -> Lost:
+        return self
+
+    def __next__(self) -> Any:
+        raise StopIteration
+
     def __getattr__(self, name: str) -> Lost:
         if name.startswith("__") and name.endswith("__"):
             raise AttributeError(name)
         else:
             return Lost()
+
+
+class FutureObject:
+    def __init__(self, id: int) -> None:
+        self.id = id
 
 
 class Serializer:
@@ -67,52 +81,124 @@ class Serializer:
         try:
             return dill.dumps(obj, **kwargs)
         except TypeError:
-            cleaned_object = self.serializable_copy(obj)
+            cleaned_object = UnpickleableItemHelper(obj).serializable_copy()
             return dill.dumps(cleaned_object, **kwargs)
 
     def from_bytes(self, text: bytes, **kwargs: Any) -> Any:
         return dill.loads(text, **kwargs)
 
-    @staticmethod
-    def serializable_copy(item: Any) -> Any:
-        seen = {id(item)}
 
-        def recursively_strip_invalid(obj) -> Any:
-            seen.add(id(obj))
-            if Serializer._is_pickleable(obj):
-                return obj
-            else:
-                if Serializer._is_endpoint(obj):
-                    return LostObject(obj)
-                else:
-                    try:
-                        shallow_copy = copy.copy(obj)
-                    except TypeError:
-                        return LostObject(obj)
-                    else:
-                        all_attributes_serializable = True
-                        for key, val in vars(shallow_copy).items():
-                            if not Serializer._is_pickleable(val):
-                                try:
-                                    dill.dumps(val)
-                                except pickle.PicklingError:
-                                    setattr(shallow_copy, key, LostObject(val))
-                                except TypeError:
-                                    setattr(shallow_copy, key, LostObject(val) if id(val) in seen else recursively_strip_invalid(val))
-                                finally:
-                                    all_attributes_serializable = False
+class UnpickleableItemHelper:
+    def __init__(self, item: Any) -> None:
+        self.item, self.seen, self.seen_while_filling = item, {id(item): None}, set()
 
-                        return LostObject(obj) if all_attributes_serializable else shallow_copy
-
+    def serializable_copy(self) -> Any:
         try:
-            initial_copy = copy.copy(item)
+            initial_copy = copy.copy(self.item)
         except TypeError:
-            return LostObject(item)
+            return LostObject(self.item)
         else:
-            return recursively_strip_invalid(initial_copy)
+            pending = self.recursively_strip_invalid(initial_copy)
+            self.seen[id(self.item)] = pending
+            self.fill_in_future_objects(pending)
+            return pending
+
+    def recursively_strip_invalid(self, obj) -> Any:
+        print(f"Seen {obj} object with id {id(obj)}")
+        self.seen[id(obj)] = None
+        if self.is_pickleable(obj):
+            print(f"{obj} is fine.")
+            self.seen[id(obj)] = obj
+            return obj
+        else:
+            return self.handle_unpickleable(obj)
+
+    def handle_unpickleable(self, obj):
+        if self.is_endpoint(obj):
+            ret = LostObject(obj)
+            print(f"{obj} is an endpoint and will be lost.")
+            self.seen[id(obj)] = ret
+            return ret
+        else:
+            return self.handle_non_endpoint(obj)
+
+    def handle_non_endpoint(self, obj):
+        try:
+            shallow_copy = copy.copy(obj)
+        except TypeError:
+            ret = LostObject(obj)
+            print(f"{obj} could not be copied and will be lost.")
+            self.seen[id(obj)] = ret
+            return ret
+        else:
+            return self.handle_shallow_copy(shallow_copy)
+
+    def handle_shallow_copy(self, obj):
+        if not hasattr(obj, "__dict__"):
+            ret = self.handle_iterable(obj)
+        else:
+            ret = self.handle_namespace_item(obj)
+
+        self.seen[id(obj)] = ret
+        return ret
+
+    def handle_iterable(self, obj):
+        for index, val in enumerate(obj):
+            obj[index] = self.handle_member(val)
+
+        return obj
+
+    def handle_namespace_item(self, obj):
+        prior_items = set([id(item) for item in vars(obj).values()])
+        for key, val in vars(obj).items():
+            setattr(obj, key, self.handle_member(val))
+
+        return LostObject(obj) if prior_items == set(id(item) for item in vars(obj).values()) else obj
+
+    def handle_member(self, obj):
+        try:
+            dill.dumps(obj)
+        except pickle.PicklingError:
+            return LostObject(obj)
+        except TypeError:
+            if id(obj) in self.seen:
+                if self.seen[id(obj)] is not None:
+                    return self.seen[id(obj)]
+                else:
+                    return FutureObject(id(obj))
+            else:
+                return self.recursively_strip_invalid(obj)
+        else:
+            return obj
+
+    def fill_in_future_objects(self, obj) -> Any:
+        self.seen_while_filling.add(id(obj))
+        if not self.is_endpoint(obj):
+            if hasattr(obj, "__dict__"):
+                self.fill_in_attributes(obj)
+            else:
+                self.fill_in_members(obj)
+
+    def fill_in_attributes(self, obj) -> Any:
+        for key, val in vars(obj).items():
+            if isinstance(val, FutureObject):
+                setattr(obj, key, self.seen[val.id])
+
+        for val in vars(obj).values():
+            if id(val) not in self.seen_while_filling:
+                self.fill_in_future_objects(val)
+
+    def fill_in_members(self, obj) -> Any:
+        for index, val in enumerate(obj):
+            if isinstance(val, FutureObject):
+                obj[index] = self.seen[val.id]
+
+        for val in obj:
+            if id(val) not in self.seen_while_filling:
+                self.fill_in_future_objects(val)
 
     @staticmethod
-    def _is_pickleable(item: Any) -> bool:
+    def is_pickleable(item: Any) -> bool:
         try:
             dill.dumps(item)
             return True
@@ -120,8 +206,8 @@ class Serializer:
             return False
 
     @staticmethod
-    def _is_endpoint(item: Any) -> bool:
-        return not hasattr(item, "__dict__") or type(item).__setattr__ is not object.__setattr__
+    def is_endpoint(item: Any) -> bool:
+        return (not hasattr(item, "__dict__") or type(item).__setattr__ is not object.__setattr__) and (not hasattr(item, "__iter__") or isinstance(item, (str, bytes)))
 
 
 class Secrets:
