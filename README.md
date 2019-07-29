@@ -91,7 +91,7 @@ Or clone the repo:
 Usage
 ====================
 
-[Usage]
+Usage examples coming soon.
 
 Contributing
 ====================
