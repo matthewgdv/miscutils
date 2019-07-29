@@ -3,15 +3,16 @@ from __future__ import annotations
 import sys
 import functools
 from typing import Any, Collection, Set, Callable, cast, TypeVar
+import ctypes
 
 import colorama
 import readchar
 import cursor
-import ctypes
 
 from maybe import Maybe
 from subtypes import Frame
-from miscutils import is_running_in_ipython
+
+from .misc import is_running_in_ipython
 
 colorama.init()
 

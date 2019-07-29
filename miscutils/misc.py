@@ -7,6 +7,7 @@ from typing import Optional, Tuple, Dict, Any, cast
 from math import inf as Infinity
 
 from maybe import Maybe
+
 from .singleton import Singleton
 
 

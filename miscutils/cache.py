@@ -5,6 +5,7 @@ from typing import Any, Callable, TypeVar, cast
 from maybe import Maybe
 from subtypes import DateTime
 from pathmagic import PathLike
+
 from .serializer import Serializer
 
 FuncSig = TypeVar("FuncSig", bound=Callable)

@@ -79,7 +79,7 @@ Installation
 
 To install use pip:
 
-    $ pip install miscutils
+    $ pip install pymiscutils
 
 
 Or clone the repo:

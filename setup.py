@@ -9,9 +9,9 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="miscutils",
+    name="pymiscutils",
     version=__version__,
-    description="[short_project_description]",
+    description="Provides a wide range of useful classes and functions.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/matthewgdv/miscutils",
@@ -23,7 +23,14 @@ setup(
     ],
     packages=find_packages(exclude=["tests*"]),
     install_requires=[
-
+        "colorama",
+        "cryptography",
+        "cursor",
+        "dill",
+        "maybe-else",
+        "pathmagic",
+        "readchar",
+        "pysubtypes"
     ],
     author="Matt GdV",
     author_email="matthewgdv@gmail.com"
