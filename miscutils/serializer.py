@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Mapping, MutableSequence, Sequence
 import copy
 import os
 from typing import Any
@@ -126,22 +127,32 @@ class UnpickleableItemHelper:
         if not hasattr(obj, "__dict__"):
             return self.handle_iterable(obj)
         else:
-            return self.handle_namespace_item(obj)
+            return self.handle_object(obj)
 
     def handle_iterable(self, obj):
-        for index, val in enumerate(obj):
-            obj[index] = self.handle_member(val)
+        if isinstance(obj, Mapping):
+            obj.update({self.handle_item(key): self.handle_item(val) for key, val in obj.items()})
+        elif isinstance(obj, MutableSequence):
+            for index, val in enumerate(obj):
+                obj[index] = self.handle_item(val)
+        elif isinstance(obj, Sequence):
+            new = type(obj)([self.handle_item(val) for val in obj])
+            for key, val in self.seen.items():
+                if val is obj:
+                    self.seen[key] = new
+
+            obj = new
 
         return obj
 
-    def handle_namespace_item(self, obj):
+    def handle_object(self, obj):
         prior_items = set([id(item) for item in vars(obj).values()])
         for key, val in vars(obj).items():
-            setattr(obj, key, self.handle_member(val))
+            setattr(obj, key, self.handle_item(val))
 
         return LostObject(obj) if prior_items == set(id(item) for item in vars(obj).values()) else obj
 
-    def handle_member(self, obj):
+    def handle_item(self, obj):
         try:
             dill.dumps(obj)
         except pickle.PicklingError:
