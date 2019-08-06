@@ -40,7 +40,7 @@ class ScriptProfiler:
             self.stack.decrement()
 
             with context(to_console=False):
-                print(f"{self.prefix}{func.__name__} finished in {timer} seconds, returning: {repr(ret)}. {f'State of the script object is now: {args[0]}' if isinstance(args[0], ScriptBase) else ''}")
+                print(f"{self.prefix}{func.__name__} finished in {timer} seconds, returning: {repr(ret)}. {f'State of the script object is now: {args[0]}' if isinstance(args[0], Script) else ''}")
 
             return ret
         return cast(FuncSig, wrapper)
@@ -51,8 +51,8 @@ class ScriptProfiler:
 
 
 class ScriptMeta(type):
-    def __new__(mcs, name: str, bases: Any, namespace: dict) -> Type[ScriptBase]:
-        if name == "ScriptBase":
+    def __new__(mcs, name: str, bases: Any, namespace: dict) -> Type[Script]:
+        if name == "Script":
             return type.__new__(mcs, name, bases, namespace)
         else:
             profiler = ScriptProfiler()
@@ -64,7 +64,7 @@ class ScriptMeta(type):
                     else:
                         namespace[attr] = profiler(val)
 
-            cls = cast(Type[ScriptBase], type.__new__(mcs, name, bases, namespace))
+            cls = cast(Type[Script], type.__new__(mcs, name, bases, namespace))
             cls._profiler = profiler
 
             return cls
@@ -72,7 +72,7 @@ class ScriptMeta(type):
     @staticmethod
     def _constructor_wrapper(func: FuncSig) -> FuncSig:
         @functools.wraps(func)
-        def wrapper(self: ScriptBase, run_mode: str = "smart", **arguments: Any) -> None:
+        def wrapper(self: Script, run_mode: str = "smart", **arguments: Any) -> None:
             self.name = File(inspect.getfile(type(self))).prename
             self.run_mode, self.arguments = run_mode, arguments
 
@@ -100,7 +100,7 @@ class ScriptMeta(type):
         return cast(FuncSig, wrapper)
 
 
-class ScriptBase(metaclass=ScriptMeta):
+class Script(metaclass=ScriptMeta):
     name: str
     run_mode: str
     arguments: Dict[str, Any]
