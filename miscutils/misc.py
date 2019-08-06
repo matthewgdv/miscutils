@@ -7,6 +7,7 @@ from typing import Optional, Tuple, Dict, Any, cast
 from math import inf as Infinity
 
 from maybe import Maybe
+from subtypes import Enum
 
 from .singleton import Singleton
 
@@ -34,6 +35,9 @@ class Beep:
 
 @functools.total_ordering
 class Version:
+    class Update(Enum):
+        MAJOR, MINOR, MICRO = "major", "minor", "micro"
+
     inf = cast(int, Infinity)
 
     def __init__(self, major: int, minor: int, micro: int, wildcard: str = None) -> None:

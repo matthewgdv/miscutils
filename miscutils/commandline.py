@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import contextlib
 import functools
 from typing import Any, Collection, Set, Callable, cast, TypeVar
 import ctypes
@@ -176,3 +177,18 @@ class CommandLine:
                 CommandLine.clear_lines(len(choices))
 
         return [choices[index] for index in selected_indices]
+
+    @staticmethod
+    @contextlib.contextmanager
+    def surround_sep(lines: int = 1, length: int = 150) -> None:
+        br = "\n"
+        print(f"{br}{('-'*length + br)*lines}", end=br)
+        try:
+            yield
+        finally:
+            print(f"{br}{('-'*length + br)*lines}", end=br)
+
+    @staticmethod
+    def print_sep(text: str, lines: int = 1, length: int = 150) -> None:
+        with CommandLine.surround_sep(lines=lines, length=length):
+            print(text)
