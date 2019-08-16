@@ -180,15 +180,18 @@ class CommandLine:
 
     @staticmethod
     @contextlib.contextmanager
-    def surround_sep(lines: int = 1, length: int = 150) -> None:
+    def surround_sep(lines: int = 1, length: int = 150, start: bool = True, end: bool = True) -> None:
         br = "\n"
-        print(f"{br}{('-'*length + br)*lines}", end=br)
+        if start:
+            print(f"{br}{('-'*length + br)*lines}", end=br)
         try:
             yield
         finally:
-            print(f"{br}{('-'*length + br)*lines}", end=br)
+            if end:
+                print(f"{br}{('-'*length + br)*lines}", end=br)
 
     @staticmethod
-    def print_sep(text: str, lines: int = 1, length: int = 150) -> None:
-        with CommandLine.surround_sep(lines=lines, length=length):
-            print(text)
+    def print_sep(text: str = None, lines: int = 1, length: int = 150, start: bool = True, end: bool = False) -> None:
+        with CommandLine.surround_sep(lines=lines, length=length, start=start, end=end):
+            if text is not None:
+                print(text)
