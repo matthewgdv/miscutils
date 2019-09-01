@@ -77,7 +77,7 @@ class ScriptMeta(type):
             self.run_mode, self.arguments = run_mode, arguments
 
             now = DateTime.now()
-            logs_dir = Dir.from_home().d.python.newdir("logs")
+            logs_dir = (Dir.from_home() if Dir.from_cwd() < Dir.from_home() else Dir.from_root()).d.python.newdir("logs")
             log_path = logs_dir.newdir(now.isoformat_date()).newdir(self.name).newfile(f"[{now.hour}h {now.minute}m {now.second}s {now.microsecond}ms]", "txt")
             self.log = PrintLog(log_path)
 

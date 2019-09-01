@@ -8,8 +8,9 @@ __all__ = [
     "Log", "PrintLog",
     "NestedParser",
     "Cache",
-    "NameSpace", "NameSpaceObject",
+    "NameSpace", "NameSpaceDict",
     "LazyProperty", "LazyWritableProperty",
+    "Config",
 ]
 
 from .singleton import Singleton
@@ -21,6 +22,7 @@ from .commandline import CommandLine
 from .log import Log, PrintLog
 from .parser import NestedParser
 from .cache import Cache
-from .namespace import NameSpace, NameSpaceObject
+from .namespace import NameSpace, NameSpaceDict
+from .config import Config
 
 from lazy_property import LazyProperty, LazyWritableProperty

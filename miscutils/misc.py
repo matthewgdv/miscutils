@@ -108,7 +108,7 @@ class Counter:
         self.value += amount
         return self.value
 
-    def decrement(self, amount: int = 1) -> nt:
+    def decrement(self, amount: int = 1) -> int:
         self.value -= amount
         return self.value
 
