@@ -41,7 +41,7 @@ class SysTrayApp:
 
 class Profiler(pyinstrument.Profiler):
     def __str__(self) -> str:
-        return self.output_text(unicode=True)
+        return self.output_text(unicode=True, color=True)
 
 
 class Timer:
