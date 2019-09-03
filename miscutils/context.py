@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import io
 import os
 import sys
 import time
 import warnings
 from typing import Any, Callable
+
+import pyinstrument
 
 from maybe import Maybe
 from pathmagic import Dir, File, PathLike
@@ -34,6 +37,11 @@ class SysTrayApp:
     def _kill(systray: Any) -> None:
         CommandLine.show_console()
         raise KeyboardInterrupt("The app was closed using the system tray's 'quit' option.")
+
+
+class Profiler(pyinstrument.Profiler):
+    def __str__(self) -> str:
+        return self.output_text(unicode=True)
 
 
 class Timer:
@@ -78,12 +86,15 @@ class Supressor:
         warnings.filters = self.filters  # type: ignore
 
 
-class PrintRedirector:
+class FilePrintRedirector:
     def __init__(self, outfile: PathLike = None, append: bool = False, openfile: bool = True) -> None:
         self.outfile = Dir.from_pathlike(outfile) if outfile is not None else Dir.from_desktop().newfile("print_redirection.txt")
         self.append, self.openfile = append, openfile
 
-    def __enter__(self) -> PrintRedirector:
+    def __str__(self) -> str:
+        return self.outfile.contents
+
+    def __enter__(self) -> FilePrintRedirector:
         self.stdout = sys.stdout
         sys.stdout = open(self.outfile, "a" if self.append else "w")  # type: ignore
         return self
@@ -93,6 +104,26 @@ class PrintRedirector:
         sys.stdout = self.stdout
         if self.openfile:
             self.outfile.open()
+
+
+class StreamPrintRedirector:
+    def __init__(self, stream: io.StringIO = None) -> None:
+        self.stream = Maybe(stream).else_(io.StringIO())
+        self.data: str = None
+
+    def __str__(self) -> str:
+        return self.data
+
+    def __enter__(self) -> StreamPrintRedirector:
+        self.stdout = sys.stdout
+        sys.stdout = self.stream
+        return self
+
+    def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
+        self.stream.seek(0)
+        self.data = self.stream.read()
+        self.stream.close()
+        sys.stdout = self.stdout
 
 
 class NullContext:

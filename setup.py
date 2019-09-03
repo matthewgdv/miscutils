@@ -30,7 +30,8 @@ setup(
         "maybe-else",
         "pathmagic",
         "readchar",
-        "pysubtypes"
+        "pysubtypes",
+        "pyinstrument"
     ],
     author="Matt GdV",
     author_email="matthewgdv@gmail.com"
