@@ -35,8 +35,8 @@ class NameSpace:
         return other in set(vars(self).keys())
 
     def _clear(self) -> None:
-        for item in self:
-            del self[item]
+        for name, item in self:
+            del self[name]
 
 
 class NameSpaceDict(dict):
