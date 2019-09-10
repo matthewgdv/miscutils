@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import Mapping, MutableSequence, Sequence
+from collections.abc import MutableSequence, MutableMapping, MutableSet, Sequence, Iterable
 import copy
 import os
 from typing import Any
-import pickle
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
@@ -58,11 +57,6 @@ class LostObject:
             return Lost()
 
 
-class FutureObject:
-    def __init__(self, id: int) -> None:
-        self.id = id
-
-
 class Serializer:
     def __init__(self, file: os.PathLike) -> None:
         self.file = file
@@ -82,7 +76,7 @@ class Serializer:
     def to_bytes(self, obj: Any, **kwargs: Any) -> None:
         try:
             return dill.dumps(obj, **kwargs)
-        except TypeError:
+        except Exception:
             cleaned_object = UnpickleableItemHelper(obj).serializable_copy()
             return dill.dumps(cleaned_object, **kwargs)
 
@@ -92,30 +86,36 @@ class Serializer:
 
 class UnpickleableItemHelper:
     def __init__(self, item: Any) -> None:
-        self.item, self.seen = item, {}
+        self.item, self.copy, self.seen = item, None, {}
 
     def serializable_copy(self) -> Any:
-        return self.recursively_strip_invalid(self.item)
+        self.seen.clear()
+
+        try:
+            self.copy = copy.copy(self.item)
+            self.seen[id(self.item)] = self.copy
+            return self.recursively_strip_invalid(self.copy)
+        except Exception:
+            return LostObject(self.item)
 
     def recursively_strip_invalid(self, obj) -> Any:
-        if self.is_pickleable(obj):
-            self.seen[id(obj)] = obj
-            return obj
-        else:
-            return self.handle_unpickleable(obj)
+        if obj is self.item:
+            return self.copy
 
-    def handle_unpickleable(self, obj):
         if self.is_endpoint(obj):
-            ret = LostObject(obj)
-            self.seen[id(obj)] = ret
-            return ret
+            if id(obj) in self.seen:
+                return self.seen[id(obj)]
+            else:
+                ret = obj if self.is_pickleable(obj) else LostObject(obj)
+                self.seen[id(obj)] = ret
+                return ret
         else:
             return self.handle_non_endpoint(obj)
 
     def handle_non_endpoint(self, obj):
         try:
-            shallow_copy = copy.copy(obj)
-        except TypeError:
+            shallow_copy = obj if obj is self.copy else copy.copy(obj)
+        except Exception:
             ret = LostObject(obj)
             self.seen[id(obj)] = ret
             return ret
@@ -124,43 +124,36 @@ class UnpickleableItemHelper:
             return self.handle_shallow_copy(shallow_copy)
 
     def handle_shallow_copy(self, obj):
-        if not hasattr(obj, "__dict__"):
-            return self.handle_iterable(obj)
-        else:
-            return self.handle_object(obj)
+        return self.handle_object(obj) if hasattr(obj, "__dict__") else self.handle_iterable(obj)
+
+    def handle_object(self, obj):
+        for key, val in vars(obj).items():
+            setattr(obj, key, self.recursively_strip_invalid(val))
+
+        return obj
 
     def handle_iterable(self, obj):
-        if isinstance(obj, Mapping):
-            obj.update({self.handle_item(key): self.handle_item(val) for key, val in obj.items()})
+        if isinstance(obj, MutableMapping):
+            new_dict = {self.recursively_strip_invalid(key): self.recursively_strip_invalid(val) for key, val in obj.items()}
+            obj.clear()
+            obj.update(new_dict)
+        elif isinstance(obj, MutableSet):
+            for val in obj:
+                obj.remove(val)
+                obj.add(self.recursively_strip_invalid(val))
         elif isinstance(obj, MutableSequence):
             for index, val in enumerate(obj):
-                obj[index] = self.handle_item(val)
+                obj[index] = self.recursively_strip_invalid(val)
         elif isinstance(obj, Sequence):
-            new = type(obj)([self.handle_item(val) for val in obj])
+            new = type(obj)([self.recursively_strip_invalid(val) for val in obj])
             for key, val in self.seen.items():
                 if val is obj:
                     self.seen[key] = new
+                    break
 
             obj = new
 
         return obj
-
-    def handle_object(self, obj):
-        prior_items = set([id(item) for item in vars(obj).values()])
-        for key, val in vars(obj).items():
-            setattr(obj, key, self.handle_item(val))
-
-        return LostObject(obj) if prior_items == set(id(item) for item in vars(obj).values()) else obj
-
-    def handle_item(self, obj):
-        try:
-            dill.dumps(obj)
-        except pickle.PicklingError:
-            return LostObject(obj)
-        except TypeError:
-            return self.seen[id(obj)] if id(obj) in self.seen else self.recursively_strip_invalid(obj)
-        else:
-            return obj
 
     @staticmethod
     def is_pickleable(item: Any) -> bool:
@@ -172,7 +165,10 @@ class UnpickleableItemHelper:
 
     @staticmethod
     def is_endpoint(item: Any) -> bool:
-        return (not hasattr(item, "__dict__") or type(item).__setattr__ is not object.__setattr__) and (not hasattr(item, "__iter__") or isinstance(item, (str, bytes)))
+        if hasattr(item, "__dict__"):
+            return True if type(item).__setattr__ is not object.__setattr__ else False
+
+        return False if isinstance(item, Iterable) and not isinstance(item, (str, bytes)) else True
 
 
 class Secrets:
