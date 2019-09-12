@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base64
-from collections.abc import MutableSequence, MutableMapping, MutableSet, Sequence, Iterable
+from collections.abc import MutableSequence, Mapping, MutableSet, Sequence, Iterable
 import copy
 import os
 from typing import Any
@@ -133,7 +133,7 @@ class UnpickleableItemHelper:
         return obj
 
     def handle_iterable(self, obj):
-        if isinstance(obj, MutableMapping):
+        if isinstance(obj, Mapping):
             new_dict = {self.recursively_strip_invalid(key): self.recursively_strip_invalid(val) for key, val in obj.items()}
             obj.clear()
             obj.update(new_dict)
