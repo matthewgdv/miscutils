@@ -22,8 +22,8 @@ FuncSig = TypeVar("FuncSig", bound=Callable)
 
 
 class ScriptProfiler:
-    def __init__(self, log: PrintLog = None) -> None:
-        self.log, self.stack = log, Counter()
+    def __init__(self, log: PrintLog = None, verbose: bool = False) -> None:
+        self.log, self.verbose, self.stack = log, verbose, Counter()
 
     def __call__(self, func: FuncSig = None) -> FuncSig:
         @functools.wraps(func)
@@ -32,7 +32,7 @@ class ScriptProfiler:
             positional, keyword = ', '.join([repr(arg) for arg in args[1:]]), ', '.join([f'{name}={repr(val)}' for name, val in kwargs.items()])
             arguments = f"{positional}{f', ' if positional and keyword else ''}{keyword}"
 
-            with context(to_console=False):
+            with context(to_console=self.verbose):
                 print(f"{self.prefix}{func.__name__}({arguments}) starting...")
 
             self.stack.increment()
@@ -42,7 +42,7 @@ class ScriptProfiler:
 
             self.stack.decrement()
 
-            with context(to_console=False):
+            with context(to_console=self.verbose):
                 print(f"{self.prefix}{func.__name__} finished in {timer} seconds, returning: {repr(ret)}. {f'State of the script object is now: {args[0]}' if isinstance(args[0], Script) else ''}")
 
             return ret
