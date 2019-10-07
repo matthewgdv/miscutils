@@ -58,7 +58,7 @@ class ScriptMeta(type):
         if name == "Script":
             return type.__new__(mcs, name, bases, namespace)
         else:
-            profiler = ScriptProfiler()
+            profiler = ScriptProfiler(verbose=namespace.get("verbose", False))
 
             for attr, val in namespace.items():
                 if isinstance(val, FunctionType):
