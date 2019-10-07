@@ -68,7 +68,7 @@ class ScriptMeta(type):
                         namespace[attr] = profiler(val)
 
             cls = cast(Type[Script], type.__new__(mcs, name, bases, namespace))
-            cls._profiler = profiler
+            cls.name, cls._profiler = File(inspect.getfile(cls)).prename, profiler
 
             return cls
 
@@ -76,7 +76,6 @@ class ScriptMeta(type):
     def _constructor_wrapper(func: FuncSig) -> FuncSig:
         @functools.wraps(func)
         def wrapper(self: Script, run_mode: str = "smart", **arguments: Any) -> None:
-            self.name = File(inspect.getfile(type(self))).prename
             self.run_mode, self.arguments = run_mode, arguments
 
             now = DateTime.now()
