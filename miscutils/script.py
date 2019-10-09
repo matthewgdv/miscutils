@@ -6,10 +6,11 @@ import traceback
 from types import FunctionType
 from typing import Dict, Any, Type, cast, TypeVar, Callable
 import inspect
+import os
 
 from maybe import Maybe
 from subtypes import DateTime
-from pathmagic import Dir, File
+from pathmagic import Dir
 
 from .misc import Counter
 from .context import Timer
@@ -68,7 +69,7 @@ class ScriptMeta(type):
                         namespace[attr] = profiler(val)
 
             cls = cast(Type[Script], type.__new__(mcs, name, bases, namespace))
-            cls.name, cls._profiler = File(inspect.getfile(cls)).prename, profiler
+            cls.name, cls._profiler = os.path.splitext(os.path.basename(os.path.abspath(inspect.getfile(cls))))[0], profiler
 
             return cls
 
