@@ -24,7 +24,7 @@ def is_running_in_ipython() -> bool:
 
 def executed_within_user_tree() -> bool:
     main_dir = sys.modules["__main__"]._dh[0] if is_running_in_ipython() else sys.modules["__main__"].__file__
-    return Dir.from_home() > main_dir
+    return Dir.from_home() > os.path.abspath(main_dir)
 
 
 def issubclass_safe(candidate: Any, ancestor: Any) -> bool:
