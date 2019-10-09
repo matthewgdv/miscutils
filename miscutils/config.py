@@ -14,7 +14,7 @@ class Config:
     def __init__(self, systemwide: bool = None) -> None:
         self.appdata = Dir.from_appdata(app_name=self.app_name, app_author="pythondata", systemwide=Maybe(systemwide).else_(False if Dir.from_main() < Dir.from_home() else True))
         self.file = self.appdata.newfile(name="config", extension="json")
-        self.data: NameSpaceDict = Maybe(self.file.contents).else_(NameSpaceDict(self.default))
+        self.data: NameSpaceDict = Maybe(self.file.contents).else_(NameSpaceDict(self.default or {}))
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"

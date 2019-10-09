@@ -49,37 +49,38 @@ class NameSpaceDict(dict):
 
         super().__init__(*args, **kwargs)
 
-        self.__dict__.update(self)
-
         for key, val in self.items():
-            if isinstance(val, Mapping):
-                self[key] = type(self)(val)
-            elif isinstance(val, (str, bytes)):
-                pass
-            elif isinstance(val, MutableSequence):
-                for index, item in enumerate(val):
-                    if isinstance(item, Mapping):
-                        val[index] = type(self)(item)
-            elif isinstance(val, Sequence):
-                try:
-                    self[key] = type(val)([type(self)(item) if isinstance(item, Mapping) else item for item in val])
-                except Exception:
-                    self[key] = tuple(type(self)(item) if isinstance(item, Mapping) else item for item in val)
-
-    def __getitem__(self, name: str) -> Any:
-        return super().__getitem__(name)
+            self[key] = self._recursively_convert_mappings_to_namespacedict(val)
 
     def __setitem__(self, name: str, val: Any) -> None:
-        if name in self.dict_fields:
-            raise NameError(f"Cannot assign attribute that shadows dict method dict.{name}().")
-
         setattr(self, name, val)
-        super().__setitem__(name, val)
 
     def __delitem__(self, name: str) -> None:
         self.__delattr__(name)
         super().__delitem__(name)
 
     def __setattr__(self, name, val) -> None:
-        super().__setattr__(name, val)
-        super().__setitem__(name, val)
+        if name in self.dict_fields:
+            raise NameError(f"Cannot assign attribute that shadows dict method dict.{name}().")
+
+        clean_val = self._recursively_convert_mappings_to_namespacedict(val)
+
+        super().__setattr__(name, clean_val)
+        super().__setitem__(name, clean_val)
+
+    def _recursively_convert_mappings_to_namespacedict(self, item) -> Any:
+        if isinstance(item, Mapping) and not isinstance(item, type(self)):
+            return type(self)(item)
+        elif isinstance(item, (str, bytes)):
+            return item
+        elif isinstance(item, MutableSequence):
+            for index, val in enumerate(item):
+                item[index] = self._recursively_convert_mappings_to_namespacedict(val)
+            return item
+        elif isinstance(item, Sequence):
+            try:
+                return type(item)([self._recursively_convert_mappings_to_namespacedict(val) for val in item])
+            except Exception:
+                return tuple(self._recursively_convert_mappings_to_namespacedict(val) for val in item)
+        else:
+            return item
