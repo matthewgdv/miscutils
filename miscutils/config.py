@@ -12,7 +12,7 @@ class Config:
     default: dict = None
 
     def __init__(self, systemwide: bool = None) -> None:
-        self.appdata = Dir.from_appdata(app_name=self.app_name, app_author="pythondata", systemwide=Maybe(systemwide).else_(False if Dir.from_cwd() < Dir.from_home() else True))
+        self.appdata = Dir.from_appdata(app_name=self.app_name, app_author="pythondata", systemwide=Maybe(systemwide).else_(False if Dir.from_main() < Dir.from_home() else True))
         self.file = self.appdata.newfile(name="config", extension="json")
         self.data: NameSpaceDict = Maybe(self.file.contents).else_(NameSpaceDict(self.default))
 
