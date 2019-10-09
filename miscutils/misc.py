@@ -3,11 +3,13 @@ from __future__ import annotations
 import functools
 import inspect
 import os
+import sys
 from typing import Optional, Tuple, Dict, Any, cast
 from math import inf as Infinity
 
 from maybe import Maybe
 from subtypes import Enum
+from pathmagic import Dir
 
 from .singleton import Singleton
 
@@ -18,6 +20,11 @@ def is_running_in_ipython() -> bool:
         return True
     except (NameError, AttributeError):
         return False
+
+
+def executed_within_user_tree() -> bool:
+    main_dir = sys.modules["__main__"]._dh[0] if is_running_in_ipython() else sys.modules["__main__"].__file__
+    return Dir.from_home() > main_dir
 
 
 def issubclass_safe(candidate: Any, ancestor: Any) -> bool:

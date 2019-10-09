@@ -12,7 +12,7 @@ from maybe import Maybe
 from subtypes import DateTime
 from pathmagic import Dir
 
-from .misc import Counter
+from .misc import Counter, executed_within_user_tree
 from .context import Timer
 from .log import PrintLog
 
@@ -80,7 +80,7 @@ class ScriptMeta(type):
             self.run_mode, self.arguments = run_mode, arguments
 
             now = DateTime.now()
-            logs_dir = (Dir.from_home() if Dir.from_main() < Dir.from_home() else Dir.from_root()).newdir("Python").newdir("logs")
+            logs_dir = (Dir.from_home() if executed_within_user_tree() else Dir.from_root()).newdir("Python").newdir("logs")
             log_path = logs_dir.newdir(now.isoformat_date()).newdir(self.name).newfile(f"[{now.hour}h {now.minute}m {now.second}s {now.microsecond}ms]", "txt")
             self.log = PrintLog(log_path)
 

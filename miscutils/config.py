@@ -6,13 +6,15 @@ from maybe import Maybe
 from pathmagic import PathLike, File, Dir
 from miscutils import NameSpaceDict
 
+from .misc import executed_within_user_tree
+
 
 class Config:
     app_name: str = None
     default: dict = None
 
     def __init__(self, systemwide: bool = None) -> None:
-        self.appdata = Dir.from_appdata(app_name=self.app_name, app_author="pythondata", systemwide=Maybe(systemwide).else_(False if Dir.from_main() < Dir.from_home() else True))
+        self.appdata = Dir.from_appdata(app_name=self.app_name, app_author="pythondata", systemwide=Maybe(systemwide).else_(not executed_within_user_tree()))
         self.file = self.appdata.newfile(name="config", extension="json")
         self.data: NameSpaceDict = Maybe(self.file.contents).else_(NameSpaceDict(self.default or {}))
 
