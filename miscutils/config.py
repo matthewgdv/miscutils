@@ -15,7 +15,7 @@ class Config:
 
     def __init__(self, systemwide: bool = None) -> None:
         self.appdata = Dir.from_appdata(app_name=self.app_name, app_author="pythondata", systemwide=Maybe(systemwide).else_(not executed_within_user_tree()))
-        self.file = self.appdata.newfile(name="config", extension="json")
+        self.file = self.appdata.new_file(name="config", extension="json")
         self.data: NameSpaceDict = Maybe(self.file.contents).else_(NameSpaceDict(self.default or {}))
 
     def __repr__(self) -> str:
@@ -47,7 +47,7 @@ class Config:
         self.file.copy(path)
 
     def export_to(self, path: PathLike) -> None:
-        self.file.copyto(path)
+        self.file.copy_to(path)
 
     def open(self) -> File:
         return self.file.open()

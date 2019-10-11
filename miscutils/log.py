@@ -58,11 +58,8 @@ class Log:
             br = "\n"
             self.file.contents += f"{'-' * length}{br * add_newlines}"
 
-    def open(self) -> None:
-        self.file.open()
-
-    def opendir(self) -> None:
-        self.file.opendir()
+    def start(self) -> None:
+        self.file.start()
 
     def _initialize(self) -> None:
         self.file = File(self._path)
@@ -72,7 +69,7 @@ class Log:
 
     @classmethod
     def from_details(cls, log_name: str, file_extension: str = "txt", log_dir: PathLike = None, active: bool = True) -> Log:
-        default_log_dir = Dir.from_home().d.documents.newdir("Python").newdir("logs")
+        default_log_dir = Dir.from_home().d.documents.new_dir("Python").new_dir("logs")
         today = DateTime.now().isoformat_date(dashes=False)
         logdir = Dir.from_pathlike(Maybe(log_dir).else_(default_log_dir))
         path = fR"{logdir}{os.sep}{log_name}Log{today}{file_extension if file_extension.startswith('.') else f'.{file_extension}'}"

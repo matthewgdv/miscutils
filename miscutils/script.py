@@ -80,8 +80,8 @@ class ScriptMeta(type):
             self.run_mode, self.arguments = run_mode, arguments
 
             now = DateTime.now()
-            logs_dir = (Dir.from_home() if executed_within_user_tree() else Dir.from_root()).newdir("Python").newdir("logs")
-            log_path = logs_dir.newdir(now.isoformat_date()).newdir(self.name).newfile(f"[{now.hour}h {now.minute}m {now.second}s {now.microsecond}ms]", "txt")
+            logs_dir = (Dir.from_home() if executed_within_user_tree() else Dir.from_root()).new_dir("Python").new_dir("logs")
+            log_path = logs_dir.new_dir(now.isoformat_date()).new_dir(self.name).new_file(f"[{now.hour}h {now.minute}m {now.second}s {now.microsecond}ms]", "txt")
             self.log = PrintLog(log_path)
 
             self._profiler.log = self.log
@@ -95,7 +95,7 @@ class ScriptMeta(type):
                 self.log.to_console = False
                 self.log.write(traceback.format_exc())
 
-            self.log.file.newrename(self.log.file.prename, "pkl").contents = self
+            self.log.file.new_rename(self.log.file.stem, "pkl").contents = self
 
             if exception is not None:
                 raise exception

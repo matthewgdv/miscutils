@@ -181,7 +181,7 @@ class UnpickleableItemHelper:
 
 class Secrets:
     def __init__(self, file: os.PathLike, key_path: PathLike = None, salt: bytes = b"") -> None:
-        self.pw = Dir.from_home().newfile("secrets", "txt") if key_path is None else key_path
+        self.pw = Dir.from_home().new_file("secrets", "txt") if key_path is None else key_path
         self.serializer, self.salt = Serializer(file), salt
         self.fernet = self._generate_fernet()
 

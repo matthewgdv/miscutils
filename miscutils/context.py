@@ -88,7 +88,7 @@ class Supressor:
 
 class FilePrintRedirector:
     def __init__(self, outfile: PathLike = None, append: bool = False, openfile: bool = True) -> None:
-        self.outfile = Dir.from_pathlike(outfile) if outfile is not None else Dir.from_desktop().newfile("print_redirection.txt")
+        self.outfile = Dir.from_pathlike(outfile) if outfile is not None else Dir.from_desktop().new_file("print_redirection.txt")
         self.append, self.openfile = append, openfile
 
     def __str__(self) -> str:
@@ -103,7 +103,7 @@ class FilePrintRedirector:
         sys.stdout.close()
         sys.stdout = self.stdout
         if self.openfile:
-            self.outfile.open()
+            self.outfile.start()
 
 
 class StreamPrintRedirector:
