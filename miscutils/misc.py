@@ -15,6 +15,7 @@ from .singleton import Singleton
 
 
 def is_running_in_ipython() -> bool:
+    """Returns True if run from within a jupyter ipython interactive session, else False."""
     try:
         assert __IPYTHON__  # type: ignore
         return True
@@ -23,11 +24,13 @@ def is_running_in_ipython() -> bool:
 
 
 def executed_within_user_tree() -> bool:
+    """Returns True if the '__main__' module is within the branches of the current user's filesystem tree, else False."""
     main_dir = sys.modules["__main__"]._dh[0] if is_running_in_ipython() else sys.modules["__main__"].__file__
     return Dir.from_home() > os.path.abspath(main_dir)
 
 
 def issubclass_safe(candidate: Any, ancestor: Any) -> bool:
+    """Returns True the candidate is a subclass of the ancestor, else False. Will return false instead of raising TypeError if the candidate is not a class."""
     try:
         return issubclass(candidate, ancestor)
     except TypeError:
@@ -35,6 +38,8 @@ def issubclass_safe(candidate: Any, ancestor: Any) -> bool:
 
 
 class Beep:
+    """Windows-specific implementation for producing a beeping sound."""
+
     def __init__(self, duration: int = 2, frequency: int = 440) -> None:
         import winsound
         winsound.Beep(frequency=frequency, duration=duration*1000)
@@ -42,6 +47,7 @@ class Beep:
 
 @functools.total_ordering
 class Version:
+    """Version class with comparison operators, string conversion using a customizable wildcard, and attribute control."""
     class Update(Enum):
         MAJOR, MINOR, MICRO = "major", "minor", "micro"
 
@@ -65,6 +71,7 @@ class Version:
 
     @property
     def major(self) -> Optional[int]:
+        """The major version number."""
         return int(self._major) if self._major != self.inf else None
 
     @major.setter
@@ -73,6 +80,7 @@ class Version:
 
     @property
     def minor(self) -> Optional[int]:
+        """The minor version number."""
         return int(self._minor) if self._minor != self.inf else None
 
     @minor.setter
@@ -81,6 +89,7 @@ class Version:
 
     @property
     def micro(self) -> Optional[int]:
+        """The micro version number."""
         return int(self._micro) if self._micro != self.inf else None
 
     @micro.setter
@@ -89,6 +98,8 @@ class Version:
 
 
 class Counter:
+    """Counter implementation that can have a limit set and can then be iterated over. Start value can also be set."""
+
     def __init__(self, start: int = 0, limit: int = Infinity) -> None:
         self.start = self.value = start
         self.limit = limit
@@ -112,19 +123,24 @@ class Counter:
         return ret
 
     def increment(self, amount: int = 1) -> int:
+        """Increment the counter by given amount."""
         self.value += amount
         return self.value
 
     def decrement(self, amount: int = 1) -> int:
+        """Decrement the counter by given amount."""
         self.value -= amount
         return self.value
 
     def reset(self) -> int:
+        """Reset the counter to the starting value."""
         self.value = self.start
         return self.value
 
 
 class EnvironmentVariables(Singleton):
+    """Helper class to permanently modify the user environment variables on Windows."""
+
     def __call__(self) -> Dict[str, str]:
         return self.keys()
 
@@ -147,6 +163,8 @@ class EnvironmentVariables(Singleton):
 
 
 class WhoCalledMe:
+    """Utility class to print the stack_trace from the location of its instanciation."""
+
     def __init__(self, full_trace: bool = True) -> None:
         self.stack = inspect.stack()
 

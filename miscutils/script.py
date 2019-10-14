@@ -23,6 +23,8 @@ FuncSig = TypeVar("FuncSig", bound=Callable)
 
 
 class ScriptProfiler:
+    """A profiler decorator class used by the Script class."""
+
     def __init__(self, log: PrintLog = None, verbose: bool = False) -> None:
         self.log, self.verbose, self.stack = log, verbose, Counter()
 
@@ -55,6 +57,8 @@ class ScriptProfiler:
 
 
 class ScriptMeta(type):
+    """The metaclass driving the Script class' magic behaviour."""
+
     def __new__(mcs, name: str, bases: Any, namespace: dict) -> Type[Script]:
         if name == "Script":
             return type.__new__(mcs, name, bases, namespace)
@@ -92,8 +96,7 @@ class ScriptMeta(type):
                 func(self)
             except Exception as ex:
                 exception = ex
-                self.log.to_console = False
-                self.log.write(traceback.format_exc())
+                self.log.write(traceback.format_exc(), to_console=False)
 
             self.log.file.new_rename(self.log.file.stem, "pkl").contents = self
 
@@ -104,10 +107,18 @@ class ScriptMeta(type):
 
 
 class Script(metaclass=ScriptMeta):
+    """
+    A Script class intended to be subclassed. Acquires a 'Script.name' attribute based on the stem of the file it is defined in.
+    Performs detailed logging of the execution of the methods (in a call-stack-aware, argument-aware, return-value-aware manner) defined within the class until the contructor returns.
+    All console output will also be logged. The log can be accessed through the 'Script.log' attribute.
+    Recommended usage is to write the high-level flow control of the script into the constructor, and call other methods from within it.
+    Upon exiting the constructor, the script object itself will be serialized using the pickle protocol.
+    """
     name: str
     run_mode: str
     arguments: Dict[str, Any]
     log: PrintLog
+    verbose = False
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"

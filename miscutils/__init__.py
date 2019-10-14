@@ -4,7 +4,7 @@ __all__ = [
     "SysTrayApp", "Beep", "Timer", "Supressor", "FilePrintRedirector", "StreamPrintRedirector", "NullContext", "Profiler",
     "Serializer", "Secrets",
     "Script",
-    "CommandLine",
+    "Console",
     "Log", "PrintLog",
     "NestedParser",
     "Cache",
@@ -18,7 +18,7 @@ from .misc import is_running_in_ipython, executed_within_user_tree, issubclass_s
 from .context import SysTrayApp, Timer, Supressor, FilePrintRedirector, StreamPrintRedirector, NullContext, Profiler
 from .serializer import Serializer, Secrets
 from .script import Script
-from .commandline import CommandLine
+from .console import Console
 from .log import Log, PrintLog
 from .parser import NestedParser
 from .cache import Cache

@@ -11,6 +11,12 @@ from pathmagic import File, Dir, PathLike
 
 
 class Log:
+    """
+    A log class intended to provide a cookie-cutter alternative to the logging module, which allows for much less custimization, but also requires less setup.
+    This log has a concept of being active/inactive. A deactivated log will do nothing when written to. The first time it is activated it will log the current time and user.
+    When used as a context manager, the log will activate upon entering, and deactivate upon exiting.
+    """
+
     def __init__(self, path: PathLike, active: bool = True) -> None:
         self._path, self.user = path, getpass.getuser()
         self._active = self._initialized = False
@@ -31,6 +37,7 @@ class Log:
 
     @property
     def active(self) -> bool:
+        """Set whether this log is active/inactive. A deactivated log will do nothing when written to."""
         return self._active
 
     @active.setter
@@ -38,6 +45,7 @@ class Log:
         (self.activate if val else self.deactivate)()
 
     def activate(self) -> None:
+        """Activate this log."""
         if not self._initialized:
             self._initialize()
 
@@ -45,20 +53,24 @@ class Log:
             self._active = True
 
     def deactivate(self) -> None:
+        """Deactivate this log. A deactivated log will do nothing when written to."""
         if self._active:
             self._active = False
 
     def write(self, text: str, add_newlines: int = 2) -> None:
+        """Write the given text this log, optionally appending newlines."""
         if self.active:
             br = "\n"
-            self.file.contents += f"{text}{br * add_newlines}"
+            self.file.contents += f"{text}{br*add_newlines}"
 
     def write_delimiter(self, length: int = 200, add_newlines: int = 2) -> None:
+        """Write a delimiter of hyphens to this log, optionally appending newlines."""
         if self.active:
             br = "\n"
-            self.file.contents += f"{'-' * length}{br * add_newlines}"
+            self.file.contents += f"{'-'*length}{br*add_newlines}"
 
     def start(self) -> None:
+        """Start this log's file using the default application for this type of file."""
         self.file.start()
 
     def _initialize(self) -> None:
@@ -69,6 +81,7 @@ class Log:
 
     @classmethod
     def from_details(cls, log_name: str, file_extension: str = "txt", log_dir: PathLike = None, active: bool = True) -> Log:
+        """Create a new Log from the given arguments."""
         default_log_dir = Dir.from_home().d.documents.new_dir("Python").new_dir("logs")
         today = DateTime.now().isoformat_date(dashes=False)
         logdir = Dir.from_pathlike(Maybe(log_dir).else_(default_log_dir))
@@ -78,6 +91,7 @@ class Log:
 
 
 class PrintLog(Log):
+    """A subclass of miscutils.Log directed at capturing the sys.stdout stream and logging it, in addition to still writing to sys.stdout (though this can be controlled with arguments)."""
     initial = sys.stdout
     stack: Any = []
 
@@ -98,6 +112,7 @@ class PrintLog(Log):
         sys.stdout = self.stack.pop(-1)
 
     def write(self, text: str, to_console: bool = None, to_file: bool = None, add_newlines: int = 0) -> None:
+        """Write the given text to this log's file and to sys.stdout, based on the 'to_console' and 'to_file' attributes set by the constructor. These attributes can be overriden by the arguments in this call."""
         if Maybe(to_console).else_(self.to_console):
             self.initial.write(text + "\n"*add_newlines)
 
@@ -108,4 +123,5 @@ class PrintLog(Log):
                 pass
 
     def flush(self) -> None:
+        """Flush the sys.stdout stream."""
         self.initial.flush()

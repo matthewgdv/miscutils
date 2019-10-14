@@ -10,6 +10,7 @@ class SingletonMeta(type):
 
 
 class Singleton(metaclass=SingletonMeta):
+    """A singleton class that will always return the same object from its constuctor. Intended to be subclassed."""
     _instance_ = None
 
     def __repr__(self) -> str:

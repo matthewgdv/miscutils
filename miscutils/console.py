@@ -19,10 +19,12 @@ colorama.init()
 
 FuncSig = TypeVar("FuncSig", bound=Callable)
 
-# TODO: implement commandline interaction interface creation API
+# TODO: implement console interaction interface creation API
 
 
 class Colorama:
+    """Context manager/decorator class used to initialize and deinitialize colorama."""
+
     def __init__(self) -> None:
         self.colorama = colorama
 
@@ -37,7 +39,7 @@ class Colorama:
 
     def __enter__(self) -> Colorama:
         self.previous = sys.stdout
-        sys.stdout = CommandLine.DEFAULT_STDOUT
+        sys.stdout = Console.DEFAULT_STDOUT
         colorama.init()
         return self
 
@@ -46,34 +48,42 @@ class Colorama:
         sys.stdout = self.previous
 
 
-class CommandLine:
+class Console:
+    """Provides console utilities such as the ability to show/hide the console, clearing lines, printing statements with hyphen separators, and offering choices with an interactive interface."""
     DEFAULT_STDOUT = sys.stdout
     SEP = "-"*150
     SEP2 = f"{'-'*150}\n{'-'*150}"
 
     @staticmethod
     def hide_console() -> None:
+        """Hide the current application console. Only works on Windows systems."""
         ctypes.WinDLL("user32").ShowWindow(ctypes.WinDLL("kernel32").GetConsoleWindow(), 0)
 
     @staticmethod
     def show_console() -> None:
+        """Show the current application console if it is hidden. Only works on Windows systems."""
         ctypes.WinDLL("user32").ShowWindow(ctypes.WinDLL("kernel32").GetConsoleWindow(), 1)
 
     @staticmethod
     def clear_lines(num: int = 1) -> None:
+        """Clear the given number of lines previously displayed on the console."""
         up_one, clear_current = "\033[A", "\033[2K"
         print(f"{up_one}{clear_current}" * num, end="")
 
     @staticmethod
     def offer_choices(choices: Collection, starting_choice: Any = None, multi_select: bool = False, desc: str = None, helptext: bool = True, display_repr: bool = True) -> Any:
+        """
+        Interactively offer choices from a collection to the user. The chosen object will be returned.
+        A description of the choice can be optionally provided. If multi_select is True, the user may choose multiple items and a list of them will be returned.
+        """
         try:
             if is_running_in_ipython():
-                return CommandLine.prompt_choices(choices, desc=desc)
+                return Console.prompt_choices(choices, desc=desc)
 
             choices = list(choices)
             selected_index = 0 if starting_choice is None else choices.index(starting_choice)
 
-            func = CommandLine._collect_choices if multi_select else CommandLine._collect_choice
+            func = Console._collect_choices if multi_select else Console._collect_choice
 
             with cursor.HiddenCursor():
                 result = func(choices=choices, starting_index=selected_index, desc=desc, helptext=helptext, display_repr=display_repr)
@@ -86,12 +96,14 @@ class CommandLine:
 
     @staticmethod
     def offer_yes_or_no(default: bool, yes_text: str = 'YES', no_text: str = 'NO', desc: str = None) -> bool:
+        """Interactively offer the user a binary choice. The choices can be customized and a description of the choice can be optionally provided."""
         mappings = {yes_text: True, no_text: False}
         question = Maybe(desc).else_(f"[{yes_text}/{no_text}]")
-        return mappings[CommandLine.offer_choices(mappings, starting_choice=yes_text if default else no_text, desc=question, display_repr=False, helptext=False)]
+        return mappings[Console.offer_choices(mappings, starting_choice=yes_text if default else no_text, desc=question, display_repr=False, helptext=False)]
 
     @staticmethod
     def prompt_choices(choices: Collection, desc: str = None, fancy: bool = True) -> Any:
+        """Prompt the user to type in a choice. A description of the choice can be optionally provided."""
         if desc is not None:
             print(f"\n{desc}\n\n")
 
@@ -108,6 +120,26 @@ class CommandLine:
 
         choice, = df[df.number == output].option
         return choice
+
+    @staticmethod
+    @contextlib.contextmanager
+    def surround_sep(lines: int = 1, length: int = 150, start: bool = True, end: bool = True) -> None:
+        """Context manager that will print separators of the given lines and length on enter and/or exit (based on provided arguments)."""
+        br = "\n"
+        if start:
+            print(f"{br}{('-'*length + br)*lines}", end=br)
+        try:
+            yield
+        finally:
+            if end:
+                print(f"{br}{('-'*length + br)*lines}", end=br)
+
+    @staticmethod
+    def print_sep(text: str = None, lines: int = 1, length: int = 150, start: bool = True, end: bool = False) -> None:
+        """Print the given string with separators of the given lines and length before and/or after (based on provided arguments)."""
+        with Console.surround_sep(lines=lines, length=length, start=start, end=end):
+            if text is not None:
+                print(text)
 
     @staticmethod
     def _collect_choice(choices: list, starting_index: int, desc: str, helptext: bool, display_repr: bool) -> Any:
@@ -136,7 +168,7 @@ class CommandLine:
                     raise KeyboardInterrupt()
 
             if output is None:
-                CommandLine.clear_lines(len(choices))
+                Console.clear_lines(len(choices))
 
         return output
 
@@ -174,24 +206,6 @@ class CommandLine:
                     raise KeyboardInterrupt()
 
             if not finished:
-                CommandLine.clear_lines(len(choices))
+                Console.clear_lines(len(choices))
 
         return [choices[index] for index in selected_indices]
-
-    @staticmethod
-    @contextlib.contextmanager
-    def surround_sep(lines: int = 1, length: int = 150, start: bool = True, end: bool = True) -> None:
-        br = "\n"
-        if start:
-            print(f"{br}{('-'*length + br)*lines}", end=br)
-        try:
-            yield
-        finally:
-            if end:
-                print(f"{br}{('-'*length + br)*lines}", end=br)
-
-    @staticmethod
-    def print_sep(text: str = None, lines: int = 1, length: int = 150, start: bool = True, end: bool = False) -> None:
-        with CommandLine.surround_sep(lines=lines, length=length, start=start, end=end):
-            if text is not None:
-                print(text)

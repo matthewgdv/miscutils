@@ -13,10 +13,12 @@ from maybe import Maybe
 from pathmagic import Dir, File, PathLike
 
 from miscutils import res
-from .commandline import CommandLine
+from .console import Console
 
 
 class SysTrayApp:
+    """Context manager for systemtray-based applications. The console is hidden on entering and shown again on exiting."""
+
     def __init__(self, hover_text: str = "Placeholder program description.", icon: PathLike = None, default_menu_index: int = 0, on_quit: Callable = None) -> None:
         from infi.systray import SysTrayIcon
 
@@ -26,25 +28,32 @@ class SysTrayApp:
         self.tray = SysTrayIcon(icon=os.fspath(icon), hover_text=hover_text, on_quit=on_quit, default_menu_index=default_menu_index)
 
     def __enter__(self) -> SysTrayApp:
-        CommandLine.hide_console()
+        Console.hide_console()
         return self.tray.__enter__()
 
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
-        CommandLine.show_console()
+        Console.show_console()
         self.tray.__exit__(ex_type, ex_value, ex_traceback)
 
     @staticmethod
     def _kill(systray: Any) -> None:
-        CommandLine.show_console()
+        Console.show_console()
         raise KeyboardInterrupt("The app was closed using the system tray's 'quit' option.")
 
 
 class Profiler(pyinstrument.Profiler):
+    """A subclass of pyinstrument.Profiler with a better __str__ method."""
+
     def __str__(self) -> str:
         return self.output_text(unicode=True, color=True)
 
 
 class Timer:
+    """
+    A timer that begins on instanciation and can be converted to a string, int, or float. It can be reset by calling it.
+    When used as a context manager, resets on entering and prints on exiting.
+    """
+
     def __init__(self) -> None:
         self.start = time.time()
 
@@ -61,16 +70,19 @@ class Timer:
         return time.time() - self.start
 
     def __call__(self) -> Timer:
-        return type(self)()
+        self.start = time.time()
+        return self
 
     def __enter__(self) -> Timer:
-        return self
+        return self()
 
     def __exit__(self, ex_type: Any, value: Any, trace: Any) -> None:
         print(self)
 
 
 class Supressor:
+    """Context manager that suppresses all output to sys.stdout while in scope."""
+
     def __enter__(self) -> Supressor:
         self.stdout, self.filters = sys.stdout, warnings.filters.copy()  # type: ignore
         sys.stdout = open(os.devnull, "w")
@@ -87,6 +99,8 @@ class Supressor:
 
 
 class FilePrintRedirector:
+    """Context manager that redirects sys.stdout to the given file while in scope. Optionally opens the file on exiting."""
+
     def __init__(self, outfile: PathLike = None, append: bool = False, openfile: bool = True) -> None:
         self.outfile = Dir.from_pathlike(outfile) if outfile is not None else Dir.from_desktop().new_file("print_redirection.txt")
         self.append, self.openfile = append, openfile
@@ -107,6 +121,8 @@ class FilePrintRedirector:
 
 
 class StreamPrintRedirector:
+    """Context manager that redirects sys.stdout to the given stream while in scope."""
+
     def __init__(self, stream: io.StringIO = None) -> None:
         self.stream = Maybe(stream).else_(io.StringIO())
         self.data: str = None
@@ -127,6 +143,8 @@ class StreamPrintRedirector:
 
 
 class NullContext:
+    """Context manager that does nothing. Attributes can be set and accessed and it can be called and it will only ever return itself without doing anything."""
+
     def __bool__(self) -> bool:
         return False
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar, cast
+from typing import Any
 
 from maybe import Maybe
 from subtypes import DateTime
@@ -8,19 +8,10 @@ from pathmagic import PathLike
 
 from .serializer import Serializer
 
-FuncSig = TypeVar("FuncSig", bound=Callable)
-
-
-def _serialize_cache(func: FuncSig) -> FuncSig:
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
-        instance = args[0]
-        ret = func(*args, **kwargs)
-        instance._save()
-        return ret
-    return cast(FuncSig, wrapper)
-
 
 class Cache:
+    """A cache class that abstracts away the process of persisting python objects to the filesystem using a dict-like interface (common dict methods and item access)."""
+
     def __init__(self, file: PathLike, days: int = None, hours: int = None, minutes: int = None) -> None:
         self.serializer = Serializer(file)
         self.expiry = None if all([val is None for val in (days, hours, minutes)]) else DateTime.now().delta(days=Maybe(days).else_(0), hours=Maybe(hours).else_(0), minutes=Maybe(minutes).else_(0))
@@ -44,20 +35,31 @@ class Cache:
     def __contains__(self, name: str) -> bool:
         return name in self.contents.data
 
+    def __enter__(self) -> Cache:
+        return self
+
+    def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
+        if ex_type is None:
+            self._save()
+
     def get(self, key: str, fallback: Any = None) -> Any:
+        """Get a given item from the cache by its key. Returns the fallback (default None) if the key cannot be found."""
         return self.contents.data.get(key, fallback)
 
-    @_serialize_cache
     def put(self, key: str, val: Any) -> None:
-        self.contents.data[key] = val
+        """Put an item into the cache with the given key."""
+        with self:
+            self.contents.data[key] = val
 
-    @_serialize_cache
     def pop(self, key: str, fallback: Any = None) -> Any:
-        return self.contents.data.pop(key, fallback)
+        """Return an item from the cache by its key and simultaneously remove it from the cache. Returns the fallback (default None) if the key cannot be found."""
+        with self:
+            return self.contents.data.pop(key, fallback)
 
-    @_serialize_cache
     def setdefault(self, key: str, default: Any) -> Any:
-        return self.contents.data.setdefault(key, default)
+        """Return an item from the cache by its key. If the key cannot be found, the default value will be added to the cache under that key, and then returned."""
+        with self:
+            return self.contents.data.setdefault(key, default)
 
     def _save(self) -> None:
         self.serializer.serialize(self.contents)

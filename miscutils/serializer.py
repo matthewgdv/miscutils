@@ -18,6 +18,8 @@ from .singleton import Singleton
 
 
 class Lost(Singleton):
+    """A class representing a lost object that could not be serialized. Because this object was nested within another lost object, even its class name has been lost."""
+
     def __len__(self) -> int:
         return 0
 
@@ -35,6 +37,8 @@ class Lost(Singleton):
 
 
 class LostObject:
+    """A class representing a lost object that could not be serialized."""
+
     def __init__(self, obj: Any) -> None:
         self.repr = repr(obj)
 
@@ -58,6 +62,8 @@ class LostObject:
 
 
 class Serializer:
+    """A class used to serialize/deserialize python objects to/from bytes and/or files using the pickle protocol."""
+
     def __init__(self, file: os.PathLike) -> None:
         self.file = file
 
@@ -65,15 +71,18 @@ class Serializer:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"
 
     def serialize(self, obj: Any, **kwargs: Any) -> None:
+        """Serialize the given object to this serializer's file."""
         self.file.path.write_bytes(self.to_bytes(obj=obj, **kwargs))
 
     def deserialize(self, **kwargs: Any) -> Any:
+        """Deserialize the contents of this serializer's file back into a python object."""
         try:
             return self.from_bytes(text=self.file.path.read_bytes(), **kwargs)
         except EOFError:
             return None
 
-    def to_bytes(self, obj: Any, **kwargs: Any) -> None:
+    def to_bytes(self, obj: Any, **kwargs: Any) -> bytes:
+        """Serialize the given object to bytes."""
         try:
             return dill.dumps(obj, **kwargs)
         except Exception:
@@ -81,10 +90,13 @@ class Serializer:
             return dill.dumps(cleaned_object, **kwargs)
 
     def from_bytes(self, text: bytes, **kwargs: Any) -> Any:
+        """Deserialize the given object from bytes."""
         return dill.loads(text, **kwargs)
 
 
 class UnpickleableItemHelper:
+    """A helper class used to pickle objects with unpickleable components by discarding those components and preserving the rest."""
+
     def __init__(self, item: Any) -> None:
         self.item, self.copy, self.seen = item, None, {}
 
@@ -180,18 +192,23 @@ class UnpickleableItemHelper:
 
 
 class Secrets:
+    """Class to abstract away serializing python objects using fernet encryption. Requires a key stored at the given 'key_path'."""
+
     def __init__(self, file: os.PathLike, key_path: PathLike = None, salt: bytes = b"") -> None:
         self.pw = Dir.from_home().new_file("secrets", "txt") if key_path is None else key_path
         self.serializer, self.salt = Serializer(file), salt
         self.fernet = self._generate_fernet()
 
-    def provide_new_password(self, key: str) -> None:
+    def provide_new_encryption_key(self, key: str) -> None:
+        """Provide a new encryption_key at this object's 'key_path'."""
         self.pw.contents = key
 
     def encrypt(self, obj: Any) -> None:
+        """Serialize, then encrypt the given python object at this object's file path."""
         self.serializer.file.path.write_bytes(self.fernet.encrypt(self.serializer.to_bytes(obj)))
 
     def decrypt(self) -> Any:
+        """Decrypt, then deserialize this object's file path back into a python object."""
         return self.serializer.from_bytes(self.fernet.decrypt(self.serializer.file.path.read_bytes()))
 
     def _generate_fernet(self) -> Fernet:

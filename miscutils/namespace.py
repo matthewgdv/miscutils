@@ -5,6 +5,8 @@ from collections.abc import Mapping, MutableSequence, Sequence
 
 
 class NameSpace:
+    """A namespace class that allows attribute access dynamically through item access."""
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         if len(args) > 1:
             raise TypeError(f"{type(self).__name__} only accepts a single positional argument (of type collections.Mapping).")
@@ -40,6 +42,7 @@ class NameSpace:
 
 
 class NameSpaceDict(dict):
+    """A namespace class that subclasses the bulitin 'dict' class and allows item access dynamically through attribute access. It recursively converts any mappings within itself into its own type."""
     dict_fields = {attr for attr in dir(dict()) if not attr.startswith("_")}
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -50,7 +53,7 @@ class NameSpaceDict(dict):
         super().__init__(*args, **kwargs)
 
         for key, val in self.items():
-            self[key] = self._recursively_convert_mappings_to_namespacedict(val)
+            self[key] = val
 
     def __setitem__(self, name: str, val: Any) -> None:
         setattr(self, name, val)
