@@ -56,20 +56,21 @@ class NameSpaceDict(dict):
             self[key] = val
 
     def __setitem__(self, name: str, val: Any) -> None:
-        setattr(self, name, val)
+        if name in self.dict_fields:
+            raise NameError(f"Cannot assign attribute that shadows dict method dict.{name}().")
+
+        clean_val = self._recursively_convert_mappings_to_namespacedict(val)
+
+        super().__setitem__(name, clean_val)
+        if isinstance(name, str) and name.isidentifier():
+            super().__setattr__(name, clean_val)
 
     def __delitem__(self, name: str) -> None:
         self.__delattr__(name)
         super().__delitem__(name)
 
     def __setattr__(self, name, val) -> None:
-        if name in self.dict_fields:
-            raise NameError(f"Cannot assign attribute that shadows dict method dict.{name}().")
-
-        clean_val = self._recursively_convert_mappings_to_namespacedict(val)
-
-        super().__setattr__(name, clean_val)
-        super().__setitem__(name, clean_val)
+        self[name] = val
 
     def _recursively_convert_mappings_to_namespacedict(self, item) -> Any:
         if isinstance(item, Mapping) and not isinstance(item, type(self)):
