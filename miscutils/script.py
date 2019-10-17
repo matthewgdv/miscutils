@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import functools
 import traceback
 from types import FunctionType
@@ -31,22 +30,26 @@ class ScriptProfiler:
     def __call__(self, func: FuncSig = None) -> FuncSig:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            timer, context = Timer(), Maybe(self.log).else_(contextlib.nullcontext())
+            timer = Timer()
             positional, keyword = ', '.join([repr(arg) for arg in args[1:]]), ', '.join([f'{name}={repr(val)}' for name, val in kwargs.items()])
             arguments = f"{positional}{f', ' if positional and keyword else ''}{keyword}"
 
-            with context(to_console=self.verbose):
+            to_console = self.log.to_console
+
+            with self.log(to_console=self.verbose):
                 print(f"{self.prefix}{func.__name__}({arguments}) starting...")
 
             self.stack.increment()
 
-            with context(to_console=True):
+            with self.log(to_console=True):
                 ret = func(*args, **kwargs)
 
             self.stack.decrement()
 
-            with context(to_console=self.verbose):
+            with self.log(to_console=self.verbose):
                 print(f"{self.prefix}{func.__name__} finished in {timer} seconds, returning: {repr(ret)}. {f'State of the script object is now: {args[0]}' if isinstance(args[0], Script) else ''}")
+
+            self.log(to_console=to_console)
 
             return ret
         return cast(FuncSig, wrapper)
