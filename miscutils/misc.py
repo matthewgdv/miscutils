@@ -38,11 +38,14 @@ def issubclass_safe(candidate: Any, ancestor: Any) -> bool:
 
 
 class Beep:
-    """Windows-specific implementation for producing a beeping sound."""
+    """Cross-platform implementation for producing a beeping sound. Only works on windows when used in an interactive IPython session (jupyter notebook)."""
 
-    def __init__(self, duration: int = 2, frequency: int = 440) -> None:
-        import winsound
-        winsound.Beep(frequency=frequency, duration=duration*1000)
+    def __init__(self) -> None:
+        if is_running_in_ipython():
+            import winsound
+            winsound.Beep(frequency=440, duration=2*1000)
+        else:
+            print("\a")
 
 
 @functools.total_ordering
