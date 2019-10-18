@@ -9,8 +9,8 @@ __all__ = [
     "NestedParser",
     "Cache",
     "NameSpace", "NameSpaceDict",
-    "LazyProperty", "LazyWritableProperty",
     "Config",
+    "lazy_property",
 ]
 
 from .singleton import Singleton
@@ -25,4 +25,4 @@ from .cache import Cache
 from .namespace import NameSpace, NameSpaceDict
 from .config import Config
 
-from lazy_property import LazyProperty, LazyWritableProperty
+from django.utils.functional import cached_property as lazy_property

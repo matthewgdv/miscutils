@@ -27,6 +27,7 @@ setup(
         "cryptography",
         "cursor",
         "dill",
+        "django",
         "maybe-else",
         "pathmagic",
         "readchar",
