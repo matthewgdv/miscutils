@@ -15,7 +15,6 @@ from .misc import Counter, executed_within_user_tree
 from .context import Timer
 from .log import PrintLog
 
-# TODO: Fix bug causing print statements to fail when carried out from certain scopes (such as from within Script.__init__() itself or inner classes)
 # TODO: Allow script objects to recursively wrap inner classes with profiling and logging
 
 FuncSig = TypeVar("FuncSig", bound=Callable)
