@@ -82,8 +82,8 @@ class ScriptMeta(type):
     @staticmethod
     def _constructor_wrapper(func: FuncSig) -> FuncSig:
         @functools.wraps(func)
-        def wrapper(self: Script, run_mode: str = "smart", **arguments: Any) -> None:
-            self.run_mode, self.arguments = run_mode, arguments
+        def wrapper(self: Script, **arguments: Any) -> None:
+            self.arguments = arguments
 
             now = DateTime.now()
             logs_dir = (Dir.from_home() if executed_within_user_tree() else Dir.from_root()).new_dir("Python").new_dir("logs")
@@ -100,7 +100,8 @@ class ScriptMeta(type):
                 exception = ex
                 self.log.write(traceback.format_exc(), to_console=False)
 
-            self.log.file.new_rename(self.log.file.stem, "pkl").contents = self
+            if self.serialize:
+                self.log.file.new_rename(self.log.file.stem, "pkl").contents = self
 
             if exception is not None:
                 raise exception
@@ -117,10 +118,11 @@ class Script(metaclass=ScriptMeta):
     Upon exiting the constructor, the script object itself will be serialized using the pickle protocol.
     """
     name: str
-    run_mode: str
     arguments: Dict[str, Any]
     log: PrintLog
-    verbose = False
+
+    run_mode = "smart"
+    verbose = serialize = False
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({', '.join([f'{attr}={repr(val)}' for attr, val in self.__dict__.items() if not attr.startswith('_')])})"
