@@ -8,7 +8,7 @@ from typing import Optional, Tuple, Dict, Any, cast
 from math import inf as Infinity
 
 from maybe import Maybe
-from subtypes import Enum
+from subtypes import AutoEnum
 from pathmagic import Dir
 
 from .singleton import Singleton
@@ -51,8 +51,8 @@ class Beep:
 @functools.total_ordering
 class Version:
     """Version class with comparison operators, string conversion using a customizable wildcard, and attribute control."""
-    class Update(Enum):
-        MAJOR, MINOR, MICRO = "major", "minor", "micro"
+    class Update(AutoEnum):
+        MAJOR, MINOR, MICRO  # noqa
 
     inf = cast(int, Infinity)
 
