@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import traceback
-from types import FunctionType
 from typing import Dict, Any, Type, cast, TypeVar, Callable
 import inspect
 import os
@@ -14,8 +13,6 @@ from pathmagic import Dir
 from .misc import Counter, executed_within_user_tree
 from .context import Timer
 from .log import PrintLog
-
-# TODO: Allow script objects to recursively wrap inner classes with profiling and logging
 
 FuncSig = TypeVar("FuncSig", bound=Callable)
 
@@ -29,14 +26,14 @@ class ScriptProfiler:
     def __call__(self, func: FuncSig = None) -> FuncSig:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            timer = Timer()
+            timer, to_console = Timer(), self.log.to_console
+
             positional, keyword = ', '.join([repr(arg) for arg in args[1:]]), ', '.join([f'{name}={repr(val)}' for name, val in kwargs.items()])
             arguments = f"{positional}{f', ' if positional and keyword else ''}{keyword}"
-
-            to_console = self.log.to_console
+            func_name = f"{type(args[0]).__name__}.{func.__name__}"
 
             with self.log(to_console=self.verbose):
-                print(f"{self.prefix}{func.__name__}({arguments}) starting...")
+                print(f"{self.prefix}{func_name}({arguments}) starting...")
 
             self.stack.increment()
 
@@ -46,7 +43,8 @@ class ScriptProfiler:
             self.stack.decrement()
 
             with self.log(to_console=self.verbose):
-                print(f"{self.prefix}{func.__name__} finished in {timer} seconds, returning: {repr(ret)}. {f'State of the script object is now: {args[0]}' if isinstance(args[0], Script) else ''}")
+                has_repr = type(args[0]).__repr__ is not object.__repr__
+                print(f"{self.prefix}{func_name} finished in {timer} seconds, returning: {repr(ret)}.{f' State of the {type(args[0]).__name__} object is: {repr(args[0])}' if has_repr else ''}")
 
             self.log(to_console=to_console)
 
@@ -62,25 +60,26 @@ class ScriptMeta(type):
     """The metaclass driving the Script class' magic behaviour."""
 
     def __new__(mcs, name: str, bases: Any, namespace: dict) -> Type[Script]:
-        if name == "Script":
-            return type.__new__(mcs, name, bases, namespace)
-        else:
+        def recursively_wrap(cls: Script, profiler: ScriptProfiler) -> None:
+            for name, val in vars(cls).items():
+                if inspect.isfunction(val) and (name == "__init__" or not (name.startswith("__") and name.endswith("__"))):
+                    setattr(cls, name, profiler(val))
+
+                elif inspect.isclass(val):
+                    recursively_wrap(cls=val, profiler=profiler)
+
+        cls: Type[Script] = type.__new__(mcs, name, bases, namespace)
+
+        if not name == "Script":
             profiler = ScriptProfiler(verbose=namespace.get("verbose", False))
+            recursively_wrap(cls=cls, profiler=profiler)
+            cls.__init__ = mcs.constructor_wrapper(cls.__init__)
 
-            for attr, val in namespace.items():
-                if isinstance(val, FunctionType):
-                    if attr == "__init__":
-                        namespace[attr] = mcs._constructor_wrapper(profiler(val))
-                    else:
-                        namespace[attr] = profiler(val)
-
-            cls = cast(Type[Script], type.__new__(mcs, name, bases, namespace))
             cls.name, cls._profiler = os.path.splitext(os.path.basename(os.path.abspath(inspect.getfile(cls))))[0], profiler
 
-            return cls
+        return cls
 
-    @staticmethod
-    def _constructor_wrapper(func: FuncSig) -> FuncSig:
+    def constructor_wrapper(func: FuncSig) -> FuncSig:
         @functools.wraps(func)
         def wrapper(self: Script, **arguments: Any) -> None:
             self.arguments = arguments
