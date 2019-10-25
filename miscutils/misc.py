@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import ast
 import functools
 import inspect
 import os
 import sys
-from typing import Optional, Tuple, Dict, Any, cast
+from typing import Optional, Tuple, Dict, Any, Callable, cast
 from math import inf as Infinity
 
 from maybe import Maybe
@@ -35,6 +36,40 @@ def issubclass_safe(candidate: Any, ancestor: Any) -> bool:
         return issubclass(candidate, ancestor)
     except TypeError:
         return False
+
+
+def get_short_lambda_source(lambda_func: Callable) -> Optional[str]:
+    """Return the source of a (short) lambda function. If it's impossible to obtain, return None."""
+    try:
+        source_lines, _ = inspect.getsourcelines(lambda_func)
+    except (IOError, TypeError):
+        return None
+
+    if len(source_lines) != 1:
+        return None
+
+    source_text = os.linesep.join(source_lines).strip()
+
+    source_ast = ast.parse(source_text)
+    lambda_node = next((node for node in ast.walk(source_ast) if isinstance(node, ast.Lambda)), None)
+    if lambda_node is None:
+        return None
+
+    lambda_text = source_text[lambda_node.col_offset:]
+    lambda_body_text = source_text[lambda_node.body.col_offset:]
+    min_length = len('lambda:_')
+    while len(lambda_text) > min_length:
+        try:
+            code = compile(lambda_body_text, '<unused filename>', 'eval')
+
+            if len(code.co_code) == len(lambda_func.__code__.co_code):
+                return lambda_text
+        except SyntaxError:
+            pass
+        lambda_text = lambda_text[:-1]
+        lambda_body_text = lambda_body_text[:-1]
+
+    return None
 
 
 class Beep:
