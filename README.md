@@ -3,54 +3,11 @@ Overview
 
 Provides a wide range of useful classes and functions:
 
-The `Cache` class
---------------------
-* Serializes any python object that can be pickled by Dill into a file
-* Interface similar to a dict for interacting with the items in the cache: `Cache.put()`, `Cache.get()`, `Cache.pop()`, and `Cache.setdefault()`
-
-The `NameSpace` class
---------------------
-* Allows its attributes to be accessed and modified using item access
-* Recursively replaces dicts with `NameSpace` instances when constructed
-* Implements iteration and membership test magic methods
-* `NameSpaceObject` class excludes underscore-prepended names from item access magic methods, useful for subclassing
-
-The `Serializer` class
---------------------
-* Serialize/deserialize any object that is pickleable by Dill
-* Discard unpickleable attributes recursively and replace them with `LostObject` instances
-
-The `Secrets` class
---------------------
-* Serialize, then encrypt any python object and write it to a file and vice-versa
-* Encryption key must be read from a file, by default '~/secrets.txt', and must be set before use
-
-The `Singleton` class
---------------------
-* Inherit from it to implement singletons (subclasses of `Singleton` will return the same instance whenever constucted)
-
-The `CommandLine` class
---------------------
-* Offer choices inveractively on the console, allowing navigation using arrow keys
-* Supports multi-select
-* Offer YES/NO
-* Hide/show console
-* Clear existing lines from console
-
 The `NestedParser` class
 --------------------
 * Parse a string by user-specified opening/closing tokens, recursively
 * Can ignore tokens between specific tags (for example, within string quotation marks)
 * Return an object tree (currently traversal methods are limited)
-
-The `ScriptBase` class
---------------------
-* Uses a metaclass that wraps every method in a profiler, showing duration, arguments, and return value of each method call, and a repr() of the script object
-* Writes profiling information and print statements to a log
-* Upon exiting the constructor, serializes the object to the same directory as the log
-* Any kwargs passed to the constructor are stored in the `ScriptBase.arguments` attribute
-* The `ScriptBase.name` attribute is automatically set to the name of the file the class is defined in
-* For use with `iotools.IOHandler`, the `ScriptBase.run_mode` attribute is automatically 'smart' by default, but can be set as a constuctor kwarg
 
 Context manager classes
 --------------------
