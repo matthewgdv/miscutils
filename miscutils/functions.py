@@ -5,6 +5,7 @@ import inspect
 import os
 import sys
 from typing import Optional, Any, Callable
+from collections.abc import Iterable
 
 from pathmagic import Dir
 
@@ -30,6 +31,10 @@ def issubclass_safe(candidate: Any, ancestor: Any) -> bool:
         return issubclass(candidate, ancestor)
     except TypeError:
         return False
+
+
+def is_non_string_iterable(candidate: Any) -> bool:
+    return False if isinstance(candidate, (str, bytes)) else isinstance(candidate, Iterable)
 
 
 def beep() -> None:
