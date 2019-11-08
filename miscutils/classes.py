@@ -61,6 +61,20 @@ class Version:
     def micro(self, val: int) -> None:
         self._micro = Maybe(val).else_(self.inf)
 
+    def increment_major(self) -> Version:
+        self.major += 1
+        self.minor = self.micro = 0
+        return self
+
+    def increment_minor(self) -> Version:
+        self.minor += 1
+        self.micro = 0
+        return self
+
+    def increment_micro(self) -> Version:
+        self.micro += 1
+        return self
+
 
 class Counter:
     """Counter implementation that can have a limit set and can then be iterated over. Start value can also be set."""
