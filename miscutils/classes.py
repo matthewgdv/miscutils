@@ -3,18 +3,20 @@ from __future__ import annotations
 import functools
 import inspect
 import os
-from typing import Optional, Tuple, Dict, cast
+from typing import Optional, Tuple, Dict, Collection, Type, Any, Callable, cast
 from math import inf as Infinity
 
 from maybe import Maybe
-from subtypes import AutoEnum, Singleton
+from subtypes import Enum, Singleton
+
+from .functions import is_non_string_iterable
 
 
 @functools.total_ordering
 class Version:
     """Version class with comparison operators, string conversion using a customizable wildcard, and attribute control."""
-    class Update(AutoEnum):
-        MAJOR, MINOR, MICRO  # noqa
+    class Update(Enum):
+        MAJOR, MINOR, MICRO = "major", "minor", "micro"
 
     inf = cast(int, Infinity)
 
@@ -157,3 +159,55 @@ class WhoCalledMe:
                     break
 
             print(statement)
+
+
+class OneOrMany:
+    class IfTypeNotMatches(Enum):
+        RAISE, COERCE, IGNORE = "raise", "coerce", "ignore"
+
+    def __init__(self, of_type: Type[Any] = None) -> None:
+        self._candidate: Any = None
+        self._dtype: Type[Any] = of_type
+        self._collection_type: Type[Collection] = list
+        self._on_type_mismatch = OneOrMany.IfTypeNotMatches.RAISE
+        self._coerce_callback: Callable = None
+
+    def __call__(self) -> Type[Collection]:
+        return self.normalize()
+
+    def of_type(self, dtype: Type[Any]) -> OneOrMany:
+        self._dtype = dtype
+        return self
+
+    def to_collection_type(self, collection_type: Type[Collection]) -> OneOrMany:
+        self._collection_type = collection_type
+        return self
+
+    def if_type_not_matches(self, respond_with: OneOrMany.IfTypeNotMatches) -> OneOrMany:
+        self._on_type_mismatch = respond_with
+        return self
+
+    def coerce_with(self, callback: Callable) -> OneOrMany:
+        self._coerce_callback = callback
+        return self
+
+    def normalize(self, candidate: Any) -> Type[Collection]:
+        as_list = list(candidate) if is_non_string_iterable(candidate) else [candidate]
+
+        if self._dtype is not None:
+            for index, item in enumerate(as_list):
+                if not isinstance(item, self._dtype):
+                    if self._on_type_mismatch == OneOrMany.IfTypeNotMatches.RAISE:
+                        raise TypeError(f"Object {repr(item)} has type '{type(item).__name__}'. Expected type '{self._dtype.__name__}'.")
+                    elif self._on_type_mismatch == OneOrMany.IfTypeNotMatches.COERCE:
+                        coerced = Maybe(self._coerce_callback).else_(self._dtype)(item)
+                        if isinstance(coerced, self._dtype):
+                            as_list[index] = coerced
+                        else:
+                            raise TypeError(f"Attempted to coerce object {repr(item)} of type '{type(item).__name__}' to type '{self._dtype.__name__}' using '{Maybe(self._coerce_callback).else_(self._dtype)}' as a callback, but returned {repr(coerced)} of type '{type(coerced).__name__}'.")
+                    elif self._on_type_mismatch == OneOrMany.IfTypeNotMatches.IGNORE:
+                        pass
+                    else:
+                        OneOrMany.IfTypeNotMatches.raise_if_not_a_member(self._on_type_mismatch)
+
+        return self._collection_type(as_list)
