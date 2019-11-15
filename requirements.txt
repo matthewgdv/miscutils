@@ -1,0 +1,10 @@
+colorama
+cryptography
+cursor
+dill
+django
+maybe-else
+pathmagic
+readchar
+pysubtypes
+pyinstrument
