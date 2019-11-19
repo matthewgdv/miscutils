@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import functools
 import inspect
 import os
@@ -76,6 +77,25 @@ class Version:
     def increment_micro(self) -> Version:
         self.micro += 1
         return self
+
+    def increment(self, magnitude: Update) -> Version:
+        if magnitude == Version.Update.MAJOR:
+            self.increment_major()
+        elif magnitude == Version.Update.MINOR:
+            self.increment_minor()
+        elif magnitude == Version.Update.MICRO:
+            self.increment_micro()
+        else:
+            Version.Update.raise_if_not_a_member(magnitude)
+
+        return self
+
+    @classmethod
+    def from_string(cls, text: str, wildcard: str = None) -> Version:
+        text = text.strip()
+        text = text[1:] if text.lower().startswith("v") else text
+        major, minor, micro = text.split(".")
+        return cls(major=major, minor=minor, micro=micro, wildcard=wildcard)
 
 
 class Counter:
@@ -221,3 +241,31 @@ class OneOrMany:
             return as_list[0]
         else:
             raise ValueError(f"Expected an iterable with one value or empty from {candidate}, got {len(as_list)}.")
+
+
+class Base64:
+    def __init__(self, raw_bytes: bytes) -> None:
+        self.bytes = raw_bytes
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(utf8={repr(self.utf8)})"
+
+    def __str__(self) -> str:
+        return str(self.utf8)
+
+    def __bytes__(self) -> bytes:
+        return self.bytes
+
+    def to_utf8(self) -> str:
+        return self.bytes.decode("utf-8")
+
+    def to_b64(self) -> str:
+        return base64.urlsafe_b64encode(self.bytes)
+
+    @classmethod
+    def from_utf8(cls, utf8: str) -> Base64:
+        return cls(raw_bytes=utf8.encode("utf-8"))
+
+    @classmethod
+    def from_b64(cls, b64: str) -> Base64:
+        return cls(raw_bytes=base64.urlsafe_b64decode(b64))

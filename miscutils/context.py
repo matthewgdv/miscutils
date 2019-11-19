@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from functools import total_ordering
 import os
 import sys
 import time
@@ -20,6 +21,7 @@ class Profiler(pyinstrument.Profiler):
         return self.output_text(unicode=True, color=True)
 
 
+@total_ordering
 class Timer:
     """
     A timer that begins on instanciation and can be converted to a string, int, or float. It can be reset by calling it.
@@ -50,6 +52,12 @@ class Timer:
 
     def __exit__(self, ex_type: Any, value: Any, trace: Any) -> None:
         print(self)
+
+    def __eq__(self, other: Any) -> bool:
+        return int(self) == other
+
+    def __lt__(self, other: Any) -> bool:
+        return float(self) < other
 
 
 class Supressor:
