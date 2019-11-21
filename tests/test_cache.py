@@ -25,7 +25,7 @@ def test_Cache___setitem__():
     assert True
 
 
-def test_Cache__get_contents():
+def test_Cache__get_content():
     assert True
 
 

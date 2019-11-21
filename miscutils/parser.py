@@ -84,9 +84,9 @@ class NestedParser:
 
     def __fetch_deeper(self) -> dict:
         if self.children is not None:
-            contents = {}
+            content = {}
             for index, child in enumerate(self.children):
-                contents[child.text] = child.__fetch_deeper()
-            return contents
+                content[child.text] = child.__fetch_deeper()
+            return content
         else:
             return {}

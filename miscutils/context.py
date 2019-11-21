@@ -86,7 +86,7 @@ class FilePrintRedirector:
         self.append, self.openfile = append, openfile
 
     def __str__(self) -> str:
-        return self.outfile.contents
+        return self.outfile.content
 
     def __enter__(self) -> FilePrintRedirector:
         self.stdout = sys.stdout
