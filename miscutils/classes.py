@@ -23,7 +23,7 @@ class Version:
 
     def __init__(self, major: int, minor: int, micro: int, wildcard: str = None) -> None:
         self.wildcard = wildcard
-        self.major, self.minor, self.micro = major, minor, micro
+        self.major, self.minor, self.micro = [magnitude if magnitude is None else int(magnitude) for magnitude in (major, minor, micro)]
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}({', '.join([f'{size}={getattr(self, size)}' for size in ['major', 'minor', 'micro']])})"
@@ -89,6 +89,9 @@ class Version:
             Version.Update.raise_if_not_a_member(magnitude)
 
         return self
+
+    def copy(self) -> Version:
+        return type(self)(self.major, self.minor, self.micro, wildcard=self.wildcard)
 
     @classmethod
     def from_string(cls, text: str, wildcard: str = None) -> Version:
