@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 import base64
 import functools
 import inspect
@@ -10,7 +11,7 @@ from math import inf as Infinity
 from maybe import Maybe
 from subtypes import Enum, Singleton
 
-from .functions import is_non_string_iterable
+from .functions import class_name
 
 
 @functools.total_ordering
@@ -188,16 +189,20 @@ class OneOrMany:
     class IfTypeNotMatches(Enum):
         RAISE, COERCE, IGNORE = "raise", "coerce", "ignore"
 
-    def __init__(self, *, of_type: Type[Any]) -> None:
-        self._dtype: Type[Any] = of_type
+    def __init__(self, *, of_type: Type[Any] = None) -> None:
+        self._dtype: Type[Any] = None
         self._on_type_mismatch = OneOrMany.IfTypeNotMatches.RAISE
         self._coerce_callback: Callable = self._dtype
+
+        if of_type is not None:
+            self.of_type(dtype=of_type)
 
     def __call__(self) -> Type[Collection]:
         return self.normalize()
 
     def of_type(self, dtype: Type[Any]) -> OneOrMany:
         self._dtype = dtype
+        self._dtype_name = class_name(self._dtype) if not isinstance(self._dtype, tuple) else [class_name(dtype) for dtype in self._dtype]
         return self
 
     def if_type_not_matches(self, respond_with: OneOrMany.IfTypeNotMatches) -> OneOrMany:
@@ -209,19 +214,19 @@ class OneOrMany:
         return self
 
     def to_list(self, candidate: Any) -> List[Any]:
-        as_list = list(candidate) if is_non_string_iterable(candidate) else [candidate]
+        as_list = list(candidate) if isinstance(candidate, Sequence) else [candidate]
 
         if self._dtype is not None:
             for index, item in enumerate(as_list):
                 if not isinstance(item, self._dtype):
                     if self._on_type_mismatch == OneOrMany.IfTypeNotMatches.RAISE:
-                        raise TypeError(f"Object {repr(item)} has type '{type(item).__name__}'. Expected type '{self._dtype.__name__}'.")
+                        raise TypeError(f"Object: {repr(item)} has type '{class_name(item)}'. Expected type(s): {repr(self._dtype_name)}.")
                     elif self._on_type_mismatch == OneOrMany.IfTypeNotMatches.COERCE:
                         coerced = self._coerce_callback(item)
                         if isinstance(coerced, self._dtype):
                             as_list[index] = coerced
                         else:
-                            raise TypeError(f"Attempted to coerce object {repr(item)} of type '{type(item).__name__}' to type '{self._dtype.__name__}' using '{Maybe(self._coerce_callback).else_(self._dtype)}' as a callback, but returned {repr(coerced)} of type '{type(coerced).__name__}'.")
+                            raise TypeError(f"Attempted to coerce object: {repr(item)} of type '{class_name(item)}' to type(s) {repr(self._dtype_name)} using '{Maybe(self._coerce_callback).else_(self._dtype)}' as a callback, but returned {repr(coerced)} of type '{class_name(coerced)}'.")
                     elif self._on_type_mismatch == OneOrMany.IfTypeNotMatches.IGNORE:
                         pass
                     else:
@@ -263,7 +268,7 @@ class Base64:
         return self.bytes.decode("utf-8")
 
     def to_b64(self) -> str:
-        return base64.urlsafe_b64encode(self.bytes)
+        return base64.urlsafe_b64encode(self.bytes).decode("utf-8")
 
     @classmethod
     def from_utf8(cls, utf8: str) -> Base64:

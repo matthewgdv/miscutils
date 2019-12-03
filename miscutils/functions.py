@@ -7,6 +7,7 @@ import sys
 from typing import Optional, Any, Callable
 from collections.abc import Iterable
 
+from subtypes import Str
 from pathmagic import Dir
 
 
@@ -35,6 +36,14 @@ def issubclass_safe(candidate: Any, ancestor: Any) -> bool:
 
 def is_non_string_iterable(candidate: Any) -> bool:
     return False if isinstance(candidate, (str, bytes)) else isinstance(candidate, Iterable)
+
+
+def class_name(candidate: Any) -> str:
+    cls = candidate if isinstance(candidate, type) or issubclass_safe(candidate, type) else type(candidate)
+    try:
+        return cls.__name__
+    except AttributeError:
+        return str(Str(str(cls)).after_last("'").before_first("'"))
 
 
 def beep() -> None:
