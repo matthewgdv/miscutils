@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 import base64
 import functools
 import inspect
@@ -11,7 +10,7 @@ from math import inf as Infinity
 from maybe import Maybe
 from subtypes import Enum, Singleton
 
-from .functions import class_name
+from .functions import class_name, is_non_string_iterable
 
 
 @functools.total_ordering
@@ -214,7 +213,7 @@ class OneOrMany:
         return self
 
     def to_list(self, candidate: Any) -> List[Any]:
-        as_list = list(candidate) if isinstance(candidate, Sequence) else [candidate]
+        as_list = list(candidate) if is_non_string_iterable(candidate) else [candidate]
 
         if self._dtype is not None:
             for index, item in enumerate(as_list):
@@ -228,7 +227,7 @@ class OneOrMany:
                         else:
                             raise TypeError(f"Attempted to coerce object: {repr(item)} of type '{class_name(item)}' to type(s) {repr(self._dtype_name)} using '{Maybe(self._coerce_callback).else_(self._dtype)}' as a callback, but returned {repr(coerced)} of type '{class_name(coerced)}'.")
                     elif self._on_type_mismatch == OneOrMany.IfTypeNotMatches.IGNORE:
-                        pass
+                        continue
                     else:
                         OneOrMany.IfTypeNotMatches.raise_if_not_a_member(self._on_type_mismatch)
 
