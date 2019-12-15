@@ -1,7 +1,7 @@
 __all__ = [
     "is_running_in_ipython", "executed_within_user_tree", "issubclass_safe", "is_non_string_iterable", "class_name", "beep", "get_short_lambda_source",
-    "Version", "Counter", "EnvironmentVariables", "WhoCalledMe", "NameSpace", "OneOrMany", "Base64",
-    "Beep", "Timer", "Supressor", "FilePrintRedirector", "StreamPrintRedirector", "NullContext", "Profiler",
+    "Version", "Counter", "EnvironmentVariables", "WhoCalledMe", "OneOrMany", "Base64",
+    "Timer", "Supressor", "FilePrintRedirector", "StreamPrintRedirector", "NullContext", "Profiler",
     "NestedParser",
     "lazy_property",
     "ReprMixin", "CopyMixin",

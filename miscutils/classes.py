@@ -4,8 +4,8 @@ import base64
 import functools
 import inspect
 import os
-from typing import Optional, Tuple, Dict, Collection, List, Type, Any, Callable, cast
-from math import inf as Infinity
+from typing import Optional, Tuple, List, Type, Any, Callable, cast, Union
+from math import inf as infinity
 
 from maybe import Maybe
 from subtypes import Enum, Singleton
@@ -19,7 +19,7 @@ class Version:
     class Update(Enum):
         MAJOR, MINOR, MICRO = "major", "minor", "micro"
 
-    inf = cast(int, Infinity)
+    inf = cast(int, infinity)
 
     def __init__(self, major: int, minor: int, micro: int, wildcard: str = None) -> None:
         self.wildcard = wildcard
@@ -104,7 +104,7 @@ class Version:
 class Counter:
     """Counter implementation that can have a limit set and can then be iterated over. Start value can also be set."""
 
-    def __init__(self, start: int = 0, limit: int = Infinity) -> None:
+    def __init__(self, start: int = 0, limit: int = infinity) -> None:
         self.start = self.value = start
         self.limit = limit
 
@@ -145,7 +145,7 @@ class Counter:
 class EnvironmentVariables(Singleton):
     """Helper class to permanently modify the user environment variables on Windows."""
 
-    def __call__(self) -> Dict[str, str]:
+    def __call__(self) -> List[str]:
         return self.keys()
 
     def __getitem__(self, key: str) -> str:
@@ -162,7 +162,7 @@ class EnvironmentVariables(Singleton):
     def __setattr__(self, attr: str, val: str) -> None:
         self[attr] = val
 
-    def keys(self) -> list:
+    def keys(self) -> List[str]:
         return list(os.environ)
 
 
@@ -189,17 +189,18 @@ class OneOrMany:
         RAISE, COERCE, IGNORE = "raise", "coerce", "ignore"
 
     def __init__(self, *, of_type: Type[Any] = None) -> None:
-        self._dtype: Type[Any] = None
+        self._dtype: Optional[Type[Any]] = None
         self._on_type_mismatch = OneOrMany.IfTypeNotMatches.RAISE
         self._coerce_callback: Callable = self._dtype
+        self._dtype_name: Optional[Union[str, List[str]]] = None
 
         if of_type is not None:
             self.of_type(dtype=of_type)
 
-    def __call__(self) -> Type[Collection]:
-        return self.normalize()
+    def __call__(self, candidate: Any) -> list:
+        return self.to_list(candidate=candidate)
 
-    def of_type(self, dtype: Type[Any]) -> OneOrMany:
+    def of_type(self, dtype: Union[Type[Any], Tuple[Type[Any], ...]]) -> OneOrMany:
         self._dtype = dtype
         self._dtype_name = class_name(self._dtype) if not isinstance(self._dtype, tuple) else [class_name(dtype) for dtype in self._dtype]
         return self
@@ -253,12 +254,6 @@ class OneOrMany:
 class Base64:
     def __init__(self, raw_bytes: bytes) -> None:
         self.bytes = raw_bytes
-
-    def __repr__(self) -> str:
-        return f"{type(self).__name__}(utf8={repr(self.utf8)})"
-
-    def __str__(self) -> str:
-        return str(self.utf8)
 
     def __bytes__(self) -> bytes:
         return self.bytes

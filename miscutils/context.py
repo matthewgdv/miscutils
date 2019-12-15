@@ -6,7 +6,7 @@ import os
 import sys
 import time
 import warnings
-from typing import Any
+from typing import Any, Optional
 
 import pyinstrument
 
@@ -64,7 +64,7 @@ class Supressor:
     """Context manager that suppresses all output to sys.stdout while in scope."""
 
     def __enter__(self) -> Supressor:
-        self.stdout, self.filters = sys.stdout, warnings.filters.copy()  # type: ignore
+        self.stdout, self.filters = sys.stdout, warnings.filters.copy()
         sys.stdout = open(os.devnull, "w")
 
         warnings.filterwarnings("ignore")
@@ -75,7 +75,7 @@ class Supressor:
         sys.stdout.close()
         sys.stdout = self.stdout
 
-        warnings.filters = self.filters  # type: ignore
+        warnings.filters = self.filters
 
 
 class FilePrintRedirector:
@@ -90,7 +90,7 @@ class FilePrintRedirector:
 
     def __enter__(self) -> FilePrintRedirector:
         self.stdout = sys.stdout
-        sys.stdout = open(self.outfile, "a" if self.append else "w")  # type: ignore
+        sys.stdout = open(self.outfile, "a" if self.append else "w")
         return self
 
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
@@ -105,7 +105,7 @@ class StreamPrintRedirector:
 
     def __init__(self, stream: io.StringIO = None) -> None:
         self.stream = Maybe(stream).else_(io.StringIO())
-        self.data: str = None
+        self.data: Optional[str] = None
 
     def __str__(self) -> str:
         return self.data

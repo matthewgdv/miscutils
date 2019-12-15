@@ -14,7 +14,7 @@ from pathmagic import Dir
 def is_running_in_ipython() -> bool:
     """Returns True if run from within a jupyter ipython interactive session, else False."""
     try:
-        assert __IPYTHON__  # type: ignore
+        assert __IPYTHON__
         return True
     except (NameError, AttributeError):
         return False
@@ -43,7 +43,7 @@ def class_name(candidate: Any) -> str:
     try:
         return cls.__name__
     except AttributeError:
-        return str(Str(str(cls)).after_last("'").before_first("'"))
+        return Str(cls).slice.after_last("'").slice.before_first("'")
 
 
 def beep() -> None:
@@ -79,6 +79,7 @@ def get_short_lambda_source(lambda_func: Callable) -> Optional[str]:
         try:
             code = compile(lambda_body_text, '<unused filename>', 'eval')
 
+            # noinspection PyUnresolvedReferences
             if len(code.co_code) == len(lambda_func.__code__.co_code):
                 return lambda_text
         except SyntaxError:
