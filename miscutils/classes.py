@@ -188,7 +188,7 @@ class OneOrMany:
     class IfTypeNotMatches(Enum):
         RAISE, COERCE, IGNORE = "raise", "coerce", "ignore"
 
-    def __init__(self, *, of_type: Type[Any] = None) -> None:
+    def __init__(self, *, of_type: Union[Type[Any], Tuple[Type[Any], ...]] = None) -> None:
         self._dtype: Optional[Type[Any]] = None
         self._on_type_mismatch = OneOrMany.IfTypeNotMatches.RAISE
         self._coerce_callback: Callable = self._dtype
