@@ -1,4 +1,4 @@
-import pytest
+# import pytest
 
 
 def test_SingletonMeta___call__():

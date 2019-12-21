@@ -11,12 +11,14 @@ Provides a wide range of useful classes and functions:
 
 The `NestedParser` class
 --------------------
+
 * Parse a string by user-specified opening/closing tokens, recursively
 * Can ignore tokens between specific tags (for example, within string quotation marks)
 * Return an object tree (currently traversal methods are limited)
 
 Context manager classes
 --------------------
+
 * `SysTrayApp` hides the console and runs a system tray app which can have its options customized with callbacks
 * `Timer` counts the time since it was instanciated, and prints it on exiting context
 * `Suppressor` supresses all console output and warnings on enter and resores it on exiting
@@ -25,6 +27,7 @@ Context manager classes
 
 Other misc classes
 --------------------
+
 * `Counter` is an object-oriented replacement for manipulating an integer var for iteration purposes
 * `WhoCalledMe` can be dropped in to print out the call stack
 * `EnvironmentVariables` can be used on Windows to get and set environment variables permanently
@@ -33,9 +36,9 @@ Other misc classes
 
 Misc functions
 --------------------
+
 * `is_running_in_ipython` returns `True` if in an ipython session, else `False`
 * `issubclass_safe` is a version of the built-in `issubclass` that doesn't raise an error if the candidate is an instance rather than a class, just returns `False`
-
 
 Installation
 ====================

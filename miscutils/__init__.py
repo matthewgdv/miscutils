@@ -3,7 +3,7 @@ __all__ = [
     "Version", "Counter", "EnvironmentVariables", "WhoCalledMe", "OneOrMany", "Base64",
     "Timer", "Supressor", "FilePrintRedirector", "StreamPrintRedirector", "NullContext", "Profiler",
     "NestedParser",
-    "lazy_property",
+    "cached_property",
     "ReprMixin", "CopyMixin",
 ]
 
@@ -13,4 +13,4 @@ from .context import Timer, Supressor, FilePrintRedirector, StreamPrintRedirecto
 from .parser import NestedParser
 from .mixin import ReprMixin, CopyMixin
 
-from django.utils.functional import cached_property as lazy_property
+from django.utils.functional import cached_property
