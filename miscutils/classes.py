@@ -274,7 +274,7 @@ class OneOrMany:
         return self
 
     def to_list(self, candidate: Any) -> List[Any]:
-        as_list = list(candidate) if is_non_string_iterable(candidate) else [candidate]
+        as_list = list(candidate) if isinstance(candidate, (list, set, tuple, dict)) else [candidate]
 
         if self._dtype is not None:
             for index, item in enumerate(as_list):
