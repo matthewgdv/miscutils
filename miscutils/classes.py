@@ -7,6 +7,8 @@ import os
 from typing import Optional, Tuple, List, Type, Any, Callable, cast, Union
 from math import inf as infinity
 
+import numpy as np
+
 from maybe import Maybe
 from subtypes import Enum, Singleton
 
@@ -98,7 +100,65 @@ class Version:
         text = text.strip()
         text = text[1:] if text.lower().startswith("v") else text
         major, minor, micro = text.split(".")
+
+        if wildcard is not None:
+            major, minor, micro = major if major != wildcard else None, minor if minor != wildcard else None, micro if micro != wildcard else None
+
         return cls(major=major, minor=minor, micro=micro, wildcard=wildcard)
+
+
+class Coordinates:
+    def __init__(self, x: int, y: int) -> None:
+        self.array = np.array([x, y])
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(x={self.x}, y={self.y})"
+
+    def __bool__(self) -> bool:
+        return bool(self.x or self.y)
+
+    def __eq__(self, other: Coordinates) -> bool:
+        return self.x == other.x and self.y == other.y
+
+    def __add__(self, other: Coordinates) -> Coordinates:
+        x, y = self.array + (other.array if isinstance(other, Coordinates) else other)
+        return type(self)(x, y)
+
+    def __sub__(self, other: Coordinates) -> Coordinates:
+        x, y = self.array - (other.array if isinstance(other, Coordinates) else other)
+        return type(self)(x, y)
+
+    def __mul__(self, other: Coordinates) -> Coordinates:
+        x, y = self.array * (other.array if isinstance(other, Coordinates) else other)
+        return type(self)(x, y)
+
+    def __truediv__(self, other: Coordinates) -> Coordinates:
+        x, y = self.array / (other.array if isinstance(other, Coordinates) else other)
+        return type(self)(x, y)
+
+    def __floordiv__(self, other: Coordinates) -> Coordinates:
+        x, y = self.array // (other.array if isinstance(other, Coordinates) else other)
+        return type(self)(x, y)
+
+    def __mod__(self, other: Coordinates) -> Coordinates:
+        x, y = self.array % (other.array if isinstance(other, Coordinates) else other)
+        return type(self)(x, y)
+
+    @property
+    def x(self) -> int:
+        return int(self.array[0])
+
+    @x.setter
+    def x(self, x: int) -> None:
+        self.array[0] = x
+
+    @property
+    def y(self) -> int:
+        return int(self.array[1])
+
+    @y.setter
+    def y(self, y: int) -> None:
+        self.array[1] = y
 
 
 class Counter:
