@@ -8,11 +8,37 @@ from typing import Optional, Tuple, List, Type, Any, Callable, cast, Union
 from math import inf as infinity
 
 import numpy as np
+from gender_guesser.detector import Detector as GenderDetector
 
 from maybe import Maybe
 from subtypes import Enum, Singleton
 
-from .functions import class_name, is_non_string_iterable
+from ..functions import class_name
+from .gender import Gender as Gender_, Pronoun
+
+
+class cached_property:
+    """Decorator that converts a method with a single self argument into a property cached on the instance."""
+    name: str = None
+
+    def __init__(self, func: Callable):
+        self.func, self.__doc__ = func, func.__doc__
+
+    def __set_name__(self, owner: Any, name: str):
+        if self.name is None:
+            self.name = name
+
+    def __get__(self, instance: Any, cls: Any = None) -> Any:
+        """
+        Call the function and put the return value in instance.__dict__ so that
+        subsequent attribute access on the instance returns the cached value
+        instead of calling cached_property.__get__().
+        """
+        if instance is None:
+            return self
+        else:
+            ret = instance.__dict__[self.name] = self.func(instance)
+            return ret
 
 
 @functools.total_ordering
@@ -331,3 +357,30 @@ class Base64:
     @classmethod
     def from_b64(cls, b64: str) -> Base64:
         return cls(raw_bytes=base64.urlsafe_b64decode(b64))
+
+
+class Gender:
+    male = Gender_(name="male", pronoun=Pronoun(subjective="he", objective="him", possessive="his"))
+    trans_masculine = Gender_(name="trans_masculine", pronoun=Pronoun(subjective="he", objective="him", possessive="his"))
+    female = Gender_(name="female", pronoun=Pronoun(subjective="she", objective="her", possessive="her"))
+    trans_femenine = Gender_(name="trans_femenine", pronoun=Pronoun(subjective="she", objective="her", possessive="her"))
+    non_binary = Gender_(name="non_binary", pronoun=Pronoun(subjective="they", objective="them", possessive="their"))
+    other = Gender_(name="other")
+    unknown = Gender_(name="unknown")
+
+    _detector: GenderDetector = None
+    _mappings = {
+        "male": male,
+        "mostly_male": male,
+        "female": female,
+        "mostly_female": female,
+        "andy": non_binary,
+        "unknown": unknown
+    }
+
+    @classmethod
+    def from_name(cls, name: str) -> Gender_:
+        if cls._detector is None:
+            cls._detector = GenderDetector(case_sensitive=False)
+
+        return cls._mappings[cls._detector.get_gender(name=name)]
