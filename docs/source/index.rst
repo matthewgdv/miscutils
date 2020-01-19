@@ -1,5 +1,5 @@
 Welcome to miscutils's documentation!
-=================================
+=====================================
 
 .. toctree::
    :caption: Contents:
