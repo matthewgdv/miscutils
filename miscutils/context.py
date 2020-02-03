@@ -6,12 +6,26 @@ import os
 import sys
 import time
 import warnings
-from typing import Any, Optional
+from typing import Any, Optional, Callable, Sequence
 
 import pyinstrument
 
 from maybe import Maybe
 from pathmagic import Dir, PathLike
+
+from .mixin import StreamReplacerMixin
+
+
+class Printer(StreamReplacerMixin):
+    def __init__(self, formatter: Callable[[str], str]) -> None:
+        self.formatter = formatter
+
+    def write(self, text: str) -> None:
+        self.stream.write(self.formatter(text))
+
+    @classmethod
+    def from_indentation(cls, level: int = 1, indentation_token: str = " "*4) -> Printer:
+        return cls(formatter=lambda text: f"{indentation_token*level}{text}")
 
 
 class Profiler(pyinstrument.Profiler):
@@ -60,66 +74,71 @@ class Timer:
         return float(self) < other
 
 
-class Supressor:
+class Supressor(StreamReplacerMixin):
     """Context manager that suppresses all output to sys.stdout while in scope."""
 
     def __enter__(self) -> Supressor:
-        self.stdout, self.filters = sys.stdout, warnings.filters.copy()
-        sys.stdout = open(os.devnull, "w")
+        super().__enter__()
 
+        self.filters = warnings.filters.copy()
         warnings.filterwarnings("ignore")
 
         return self
 
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
-        sys.stdout.close()
-        sys.stdout = self.stdout
-
+        super().__exit__(ex_type=ex_type, ex_value=ex_value, ex_traceback=ex_traceback)
         warnings.filters = self.filters
 
+    def write(self, text: str) -> None:
+        pass
 
-class FilePrintRedirector:
+
+class FilePrintRedirector(StreamReplacerMixin):
     """Context manager that redirects sys.stdout to the given file while in scope. Optionally opens the file on exiting."""
 
     def __init__(self, outfile: PathLike = None, append: bool = False, openfile: bool = True) -> None:
-        self.outfile = Dir.from_pathlike(outfile) if outfile is not None else Dir.from_desktop().new_file("print_redirection.txt")
+        self.outfile = Dir.from_pathlike(outfile) if outfile is not None else Dir.from_desktop().new_file("print_redirection", "txt")
         self.append, self.openfile = append, openfile
+
+        if not append:
+            self.outfile.content = None
 
     def __str__(self) -> str:
         return self.outfile.content
 
     def __enter__(self) -> FilePrintRedirector:
-        self.stdout = sys.stdout
-        sys.stdout = open(self.outfile, "a" if self.append else "w")
+        super().__enter__()
+        self.out = open(self.outfile, "a" if self.append else "w")
         return self
 
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
-        sys.stdout.close()
-        sys.stdout = self.stdout
+        super().__exit__(ex_type=ex_type, ex_value=ex_value, ex_traceback=ex_traceback)
+        self.out.close()
+
         if self.openfile:
             self.outfile.start()
 
+    def write(self, text: str) -> None:
+        self.out.write(text)
 
-class StreamPrintRedirector:
+
+class StreamPrintRedirector(StreamReplacerMixin):
     """Context manager that redirects sys.stdout to the given stream while in scope."""
 
     def __init__(self, stream: io.StringIO = None) -> None:
-        self.stream = Maybe(stream).else_(io.StringIO())
+        self.out = Maybe(stream).else_(io.StringIO())
         self.data: Optional[str] = None
 
     def __str__(self) -> str:
         return self.data
 
-    def __enter__(self) -> StreamPrintRedirector:
-        self.stdout = sys.stdout
-        sys.stdout = self.stream
-        return self
-
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
-        self.stream.seek(0)
-        self.data = self.stream.read()
-        self.stream.close()
-        sys.stdout = self.stdout
+        super().__exit__(ex_type=ex_type, ex_value=ex_value, ex_traceback=ex_traceback)
+        self.out.close()
+
+    def write(self, text: str) -> None:
+        self.data += text
+        self.out.write(text)
 
 
 class NullContext:

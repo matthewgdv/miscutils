@@ -4,7 +4,7 @@ import base64
 import functools
 import inspect
 import os
-from typing import Optional, Tuple, List, Type, Any, Callable, cast, Union
+from typing import Optional, Tuple, List, Type, Any, Callable, cast, Union, Sequence, Dict
 from math import inf as infinity
 
 import numpy as np
@@ -13,8 +13,8 @@ from gender_guesser.detector import Detector as GenderDetector
 from maybe import Maybe
 from subtypes import Enum, Singleton
 
-from ..functions import class_name
-from .gender import Gender as Gender_, Pronoun
+from .mixin import ReprMixin
+from .functions import class_name
 
 
 class cached_property:
@@ -37,7 +37,8 @@ class cached_property:
         if instance is None:
             return self
         else:
-            ret = instance.__dict__[self.name] = self.func(instance)
+            setattr(instance, self.name, (ret := self.func(instance)))
+            # ret = instance.__dict__[self.name] = self.func(instance)
             return ret
 
 
@@ -228,6 +229,24 @@ class Counter:
         return self.value
 
 
+class PercentagePrinter:
+    def __init__(self, iterable: Sequence, formatter: Callable[[int], str] = lambda percent: f"[{str(percent).rjust(3)}%]", padding: int = 1, finished_text: str = "DONE") -> None:
+        self.iterable, self.formatter, self.finished_text, self.padding, self.size = iterable, formatter, finished_text, 6 + padding, len(iterable)
+
+    def __iter__(self) -> PercentagePrinter:
+        self.index = 0
+        return self
+
+    def __next__(self) -> str:
+        if self.index >= self.size:
+            print(f"{self.formatter(100).ljust(self.padding)}{self.finished_text}")
+            raise StopIteration
+
+        print(f"{self.formatter(int((self.index/self.size)*100)).ljust(self.padding)}{(element := self.iterable[self.index])}")
+        self.index += 1
+        return element
+
+
 class EnvironmentVariables(Singleton):
     """Helper class to permanently modify the user environment variables on Windows."""
 
@@ -359,28 +378,61 @@ class Base64:
         return cls(raw_bytes=base64.urlsafe_b64decode(b64))
 
 
-class Gender:
-    male = Gender_(name="male", pronoun=Pronoun(subjective="he", objective="him", possessive="his"))
-    trans_masculine = Gender_(name="trans_masculine", pronoun=Pronoun(subjective="he", objective="him", possessive="his"))
-    female = Gender_(name="female", pronoun=Pronoun(subjective="she", objective="her", possessive="her"))
-    trans_femenine = Gender_(name="trans_femenine", pronoun=Pronoun(subjective="she", objective="her", possessive="her"))
-    non_binary = Gender_(name="non_binary", pronoun=Pronoun(subjective="they", objective="them", possessive="their"))
-    other = Gender_(name="other")
-    unknown = Gender_(name="unknown")
+class GenderMeta(type):
+    Pronoun: Type[Gender.Pronoun]
 
-    _detector: GenderDetector = None
-    _mappings = {
-        "male": male,
-        "mostly_male": male,
-        "female": female,
-        "mostly_female": female,
-        "andy": non_binary,
-        "unknown": unknown
-    }
+    def from_name(cls, name: str) -> Gender:
+        return cls._mappings.get(cls._detector.get_gender(name=name))
 
-    @classmethod
-    def from_name(cls, name: str) -> Gender_:
-        if cls._detector is None:
-            cls._detector = GenderDetector(case_sensitive=False)
+    @cached_property
+    def male(cls) -> Gender:
+        return cls(name="male", pronoun=cls.Pronoun(subjective="he", objective="him", possessive="his"))
 
-        return cls._mappings[cls._detector.get_gender(name=name)]
+    @cached_property
+    def trans_masculine(cls) -> Gender:
+        return cls(name="transmasculine", pronoun=cls.Pronoun(subjective="he", objective="him", possessive="his"))
+
+    @cached_property
+    def female(cls) -> Gender:
+        return cls(name="female", pronoun=cls.Pronoun(subjective="she", objective="her", possessive="her"))
+
+    @cached_property
+    def trans_femenine(cls) -> Gender:
+        return cls(name="transfemenine", pronoun=cls.Pronoun(subjective="she", objective="her", possessive="her"))
+
+    @cached_property
+    def non_binary(cls) -> Gender:
+        return cls(name="nonbinary", pronoun=cls.Pronoun(subjective="they", objective="them", possessive="their"))
+
+    @cached_property
+    def other(cls) -> Gender:
+        return cls(name="other")
+
+    @cached_property
+    def unknown(cls) -> Gender:
+        return cls(name="unknown")
+
+    @cached_property
+    def _detector(cls) -> GenderDetector:
+        return GenderDetector(case_sensitive=False)
+
+    @cached_property
+    def _mappings(cls) -> Dict[str, Gender]:
+        return {
+            "male": cls.male,
+            "mostly_male": cls.male,
+            "female": cls.female,
+            "mostly_female": cls.female,
+            "andy": cls.non_binary,
+            "unknown": cls.unknown
+        }
+
+
+class Gender(ReprMixin, metaclass=GenderMeta):
+    class Pronoun(ReprMixin):
+        def __init__(self, subjective: str, objective: str, possessive: str) -> None:
+            self.subjective, self.objective, self.possessive = subjective, objective, possessive
+
+    def __init__(self, name: str, pronoun: Pronoun = None) -> None:
+        self.name, self.pronoun = name, pronoun
+

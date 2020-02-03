@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import sys
 from copy import copy, deepcopy
+from typing import TextIO, Any
 
 
 class ReprMixin:
@@ -14,3 +16,24 @@ class CopyMixin:
 
     def deepcopy(self) -> CopyMixin:
         return deepcopy(self)
+
+
+class StreamReplacerMixin:
+    stream: TextIO
+
+    def __enter__(self) -> StreamReplacerMixin:
+        self.stream = sys.stdout
+        sys.stdout = self
+        return self
+
+    def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
+        sys.stdout = self.stream
+
+    def write(self, text: str) -> None:
+        self.stream.write(text)
+
+    def flush(self) -> None:
+        self.stream.flush()
+
+    def close(self) -> None:
+        self.stream.close()
