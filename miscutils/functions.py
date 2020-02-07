@@ -4,6 +4,7 @@ import ast
 import inspect
 import os
 import sys
+import traceback
 from typing import Optional, Any, Callable
 from collections.abc import Iterable
 
@@ -44,6 +45,10 @@ def class_name(candidate: Any) -> str:
         return cls.__name__
     except AttributeError:
         return Str(cls).slice.after_last("'").slice.before_first("'")
+
+
+def traceback_from_exception(ex: Exception) -> str:
+    return "".join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
 
 
 def beep() -> None:

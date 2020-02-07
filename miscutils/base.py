@@ -11,7 +11,7 @@ import numpy as np
 from gender_guesser.detector import Detector as GenderDetector
 
 from maybe import Maybe
-from subtypes import Enum, Singleton
+from subtypes import Enum
 
 from .mixin import ReprMixin
 from .functions import class_name
@@ -108,14 +108,11 @@ class Version:
         return self
 
     def increment(self, magnitude: Update) -> Version:
-        if magnitude == Version.Update.MAJOR:
-            self.increment_major()
-        elif magnitude == Version.Update.MINOR:
-            self.increment_minor()
-        elif magnitude == Version.Update.MICRO:
-            self.increment_micro()
-        else:
-            Version.Update.raise_if_not_a_member(magnitude)
+        self.Update(magnitude).map_to({
+            self.Update.MAJOR: self.increment_major,
+            self.Update.MINOR: self.increment_minor,
+            self.Update.MICRO: self.increment_micro,
+        })()
 
         return self
 
@@ -230,25 +227,39 @@ class Counter:
 
 
 class PercentagePrinter:
-    def __init__(self, iterable: Sequence, formatter: Callable[[int], str] = lambda percent: f"[{str(percent).rjust(3)}%]", padding: int = 1, finished_text: str = "DONE") -> None:
-        self.iterable, self.formatter, self.finished_text, self.padding, self.size = iterable, formatter, finished_text, 6 + padding, len(iterable)
+    def __init__(self, iterable: Sequence, formatter: Callable[[Any], str] = lambda val: str(val), padding: str = " ", finished_text: str = "DONE", percent_formatter: Callable[[Union[int, float]], str] = lambda percent: f"[{percent:7.2%}]") -> None:
+        self.iterable, self.formatter, self.finished_text, self.percent_formatter = iterable, formatter, finished_text, percent_formatter
+        self.padding, self.size = padding, len(iterable)
 
     def __iter__(self) -> PercentagePrinter:
         self.index = 0
         return self
 
-    def __next__(self) -> str:
+    def __next__(self) -> Any:
         if self.index >= self.size:
-            print(f"{self.formatter(100).ljust(self.padding)}{self.finished_text}")
+            print(f"{self.percent_formatter(1)}{self.padding}{self.finished_text}")
             raise StopIteration
 
-        print(f"{self.formatter(int((self.index/self.size)*100)).ljust(self.padding)}{(element := self.iterable[self.index])}")
+        print(f"{self.percent_formatter(self.index/self.size)}{self.padding}{self.formatter(element := self.iterable[self.index])}")
         self.index += 1
         return element
 
 
-class EnvironmentVariables(Singleton):
+class WindowsEnVars:
     """Helper class to permanently modify the user environment variables on Windows."""
+
+    class Scope(Enum):
+        SYSTEM, USER = "system", "user"
+
+    # noinspection PyUnresolvedReferences,PyPackageRequirements
+    def __init__(self, scope: WindowsEnVars.Scope = Scope.USER) -> None:
+        import clr
+        from System import Environment, EnvironmentVariableTarget
+
+        Scope = type(self).Scope
+
+        self._dotnet_setter_ = Environment.SetEnvironmentVariable
+        self._scope_ = Scope(scope).map_to({Scope.USER: EnvironmentVariableTarget.User, Scope.SYSTEM: EnvironmentVariableTarget.Machine})
 
     def __call__(self) -> List[str]:
         return self.keys()
@@ -257,15 +268,20 @@ class EnvironmentVariables(Singleton):
         return os.environ[key]
 
     def __setitem__(self, key: str, val: str) -> None:
-        os.environ[str(key)] = str(val)
-        os.system(f"SET {key} {val}")
-        os.system(f"SETX {key} {val}")
+        os.environ[(key := str(key))] = (val := str(val))
+        self._dotnet_setter_(key, val, self._scope_)
 
     def __getattr__(self, attr: str) -> str:
-        return self[attr]
+        if attr.startswith("_") and attr.endswith("_"):
+            return super().__getattribute__(attr)
+        else:
+            return self[attr]
 
     def __setattr__(self, attr: str, val: str) -> None:
-        self[attr] = val
+        if attr.startswith("_") and attr.endswith("_"):
+            super().__setattr__(attr, val)
+        else:
+            self[attr] = val
 
     def keys(self) -> List[str]:
         return list(os.environ)
@@ -293,7 +309,7 @@ class OneOrMany:
     class IfTypeNotMatches(Enum):
         RAISE, COERCE, IGNORE = "raise", "coerce", "ignore"
 
-    def __init__(self, *, of_type: Union[Type[Any], Tuple[Type[Any], ...]] = None) -> None:
+    def __init__(self, of_type: Union[Type[Any], Tuple[Type[Any], ...]] = None) -> None:
         self._dtype: Optional[Type[Any]] = None
         self._on_type_mismatch = OneOrMany.IfTypeNotMatches.RAISE
         self._coerce_callback: Callable = self._dtype
@@ -324,18 +340,18 @@ class OneOrMany:
         if self._dtype is not None:
             for index, item in enumerate(as_list):
                 if not isinstance(item, self._dtype):
-                    if self._on_type_mismatch == OneOrMany.IfTypeNotMatches.RAISE:
+                    if self._on_type_mismatch == self.IfTypeNotMatches.RAISE:
                         raise TypeError(f"Object: {repr(item)} has type '{class_name(item)}'. Expected type(s): {repr(self._dtype_name)}.")
-                    elif self._on_type_mismatch == OneOrMany.IfTypeNotMatches.COERCE:
+                    elif self._on_type_mismatch == self.IfTypeNotMatches.COERCE:
                         coerced = self._coerce_callback(item)
                         if isinstance(coerced, self._dtype):
                             as_list[index] = coerced
                         else:
                             raise TypeError(f"Attempted to coerce object: {repr(item)} of type '{class_name(item)}' to type(s) {repr(self._dtype_name)} using '{Maybe(self._coerce_callback).else_(self._dtype)}' as a callback, but returned {repr(coerced)} of type '{class_name(coerced)}'.")
-                    elif self._on_type_mismatch == OneOrMany.IfTypeNotMatches.IGNORE:
+                    elif self._on_type_mismatch == self.IfTypeNotMatches.IGNORE:
                         continue
                     else:
-                        OneOrMany.IfTypeNotMatches.raise_if_not_a_member(self._on_type_mismatch)
+                        self.IfTypeNotMatches(self._on_type_mismatch)
 
         return as_list
 
