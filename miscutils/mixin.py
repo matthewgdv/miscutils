@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from copy import copy, deepcopy
 from typing import TextIO, Any
@@ -19,15 +20,19 @@ class CopyMixin:
 
 
 class StreamReplacerMixin:
-    stream: TextIO
+    stream: TextIO = open(os.devnull, mode="w", encoding="utf-8", errors="ignore")
 
     def __enter__(self) -> StreamReplacerMixin:
-        self.stream = sys.stdout
-        sys.stdout = self
+        if sys.stdout is not self:
+            self.stream = sys.stdout
+            sys.stdout = self
+
         return self
 
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
-        sys.stdout = self.stream
+        if self.stream is not type(self).stream:
+            sys.stdout = self.stream
+            del self.stream
 
     def write(self, text: str) -> None:
         self.stream.write(text)
