@@ -11,35 +11,10 @@ import numpy as np
 from gender_guesser.detector import Detector as GenderDetector
 
 from maybe import Maybe
-from subtypes import Enum
+from subtypes import Enum, cached_property
 
 from .mixin import ReprMixin
 from .functions import class_name
-
-
-class cached_property:
-    """Decorator that converts a method with a single self argument into a property cached on the instance."""
-    name: str = None
-
-    def __init__(self, func: Callable):
-        self.func, self.__doc__ = func, func.__doc__
-
-    def __set_name__(self, owner: Any, name: str):
-        if self.name is None:
-            self.name = name
-
-    def __get__(self, instance: Any, cls: Any = None) -> Any:
-        """
-        Call the function and put the return value in instance.__dict__ so that
-        subsequent attribute access on the instance returns the cached value
-        instead of calling cached_property.__get__().
-        """
-        if instance is None:
-            return self
-        else:
-            setattr(instance, self.name, (ret := self.func(instance)))
-            # ret = instance.__dict__[self.name] = self.func(instance)
-            return ret
 
 
 @functools.total_ordering
@@ -60,11 +35,11 @@ class Version:
     def __str__(self) -> str:
         return ".".join([str(getattr(self, size)) if getattr(self, f"_{size}") != self.inf else str(self.wildcard) for size in ["major", "minor", "micro"]])
 
-    def __eq__(self, other: Tuple[int, int, int]) -> bool:  # type: ignore
-        return (self._major, self._minor, self._micro) == other
+    def __eq__(self, other: Version) -> bool:
+        return (self._major, self._minor, self._micro) == (other._major, other._minor, other._micro)
 
-    def __lt__(self, other: Tuple[int, int, int]) -> bool:
-        return (self._major, self._minor, self._micro) < other
+    def __lt__(self, other: Version) -> bool:
+        return (self._major, self._minor, self._micro) < (other._major, other._minor, other._micro)
 
     @property
     def major(self) -> Optional[int]:
