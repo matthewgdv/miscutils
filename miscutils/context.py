@@ -39,10 +39,11 @@ class Profiler(pyinstrument.Profiler):
 class Timer:
     """
     A timer that begins on instanciation and can be converted to a string, int, or float. It can be reset by calling it.
-    When used as a context manager, resets on entering and prints on exiting.
+    When used as a context manager, upon exiting sets a Timer.period attribute indicating the timer's value at point of exit. Entering does not reset the timer.
     """
 
     def __init__(self) -> None:
+        self.period: float = None
         self.start = time.time()
 
     def __repr__(self) -> str:
@@ -62,10 +63,11 @@ class Timer:
         return self
 
     def __enter__(self) -> Timer:
-        return self()
+        self.period = None
+        return self
 
     def __exit__(self, ex_type: Any, value: Any, trace: Any) -> None:
-        print(self)
+        self.period = float(self)
 
     def __eq__(self, other: Any) -> bool:
         return int(self) == other
