@@ -42,8 +42,9 @@ class Timer:
     When used as a context manager, upon exiting sets a Timer.period attribute indicating the timer's value at point of exit. Entering does not reset the timer.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, timeout: int = None, retry_delay: int = None) -> None:
         self.period: float = None
+        self.timeout, self.retry_delay, self.fresh = timeout, retry_delay, True
         self.start = time.time()
 
     def __repr__(self) -> str:
@@ -51,6 +52,15 @@ class Timer:
 
     def __str__(self) -> str:
         return str(float(self))
+
+    def __bool__(self) -> bool:
+        valid = self.timeout is None or self < self.timeout
+        if self.retry_delay is not None and valid and not self.fresh:
+            time.sleep(self.retry_delay)
+
+        self.fresh = False
+
+        return valid
 
     def __int__(self) -> int:
         return int(float(self))
