@@ -44,7 +44,7 @@ class Timer:
 
     def __init__(self, timeout: int = None, retry_delay: int = None) -> None:
         self.period: float = None
-        self.timeout, self.retry_delay, self.fresh = timeout, retry_delay, True
+        self.timeout, self.retry_delay = timeout, retry_delay
         self.start = time.time()
 
     def __repr__(self) -> str:
@@ -54,13 +54,25 @@ class Timer:
         return str(float(self))
 
     def __bool__(self) -> bool:
-        valid = self.timeout is None or self < self.timeout
-        if self.retry_delay is not None and valid and not self.fresh:
+        return self.timeout is None or self < self.timeout
+
+    def __iter__(self) -> Timer:
+        self._fresh = True
+        return self
+
+    def __next__(self) -> float:
+        if self.timeout is None:
+            raise RuntimeError(f"Cannot iterate over a {type(self).__name__} that does not have a timeout set.")
+
+        if float(self) + (self.retry_delay or 0) > self.timeout:
+            raise StopIteration
+
+        if self._fresh:
+            self._fresh = False
+        elif self.retry_delay is not None:
             time.sleep(self.retry_delay)
 
-        self.fresh = False
-
-        return valid
+        return float(self)
 
     def __int__(self) -> int:
         return int(float(self))
