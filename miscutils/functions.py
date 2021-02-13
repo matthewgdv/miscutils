@@ -5,8 +5,9 @@ import inspect
 import os
 import sys
 import traceback
-from typing import Optional, Any, Callable
+from typing import Optional, Any, Callable, Type
 from collections.abc import Iterable
+from pathlib import Path
 
 from subtypes import Str
 from pathmagic import Dir
@@ -25,6 +26,10 @@ def executed_within_user_tree() -> bool:
     """Returns True if the '__main__' module is within the branches of the current user's filesystem tree, else False."""
     main_dir = sys.modules["__main__"]._dh[0] if is_running_in_ipython() else sys.modules["__main__"].__file__
     return Dir.from_home() > os.path.abspath(main_dir)
+
+
+def file_stem_of_class(cls: Type) -> str:
+    return Path(inspect.getfile(cls)).stem
 
 
 def issubclass_safe(candidate: Any, ancestor: Any) -> bool:
