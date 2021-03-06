@@ -21,7 +21,7 @@ from .functions import class_name
 class Version:
     """Version class with comparison operators, string conversion using a customizable wildcard, and attribute control."""
     class Update(Enum):
-        MAJOR, MINOR, MICRO = "major", "minor", "micro"
+        MAJOR = MINOR = MICRO = Enum.Auto()
 
     inf = cast(int, infinity)
 
@@ -224,7 +224,7 @@ class WindowsEnVars:
     """Helper class to permanently modify the user environment variables on Windows."""
 
     class Scope(Enum):
-        SYSTEM, USER = "system", "user"
+        SYSTEM = USER = Enum.Auto()
 
     # noinspection PyUnresolvedReferences,PyPackageRequirements
     def __init__(self, scope: WindowsEnVars.Scope = Scope.USER) -> None:
@@ -282,7 +282,7 @@ class WhoCalledMe:
 
 class OneOrMany:
     class IfTypeNotMatches(Enum):
-        RAISE, COERCE, IGNORE = "raise", "coerce", "ignore"
+        RAISE = COERCE = IGNORE = Enum.Auto()
 
     def __init__(self, of_type: Union[Type[Any], Tuple[Type[Any], ...]] = None) -> None:
         self._dtype: Optional[Type[Any]] = None
@@ -380,24 +380,12 @@ class GenderMeta(type):
         return cls(name="male", pronoun=cls.Pronoun(subjective="he", objective="him", possessive="his"))
 
     @cached_property
-    def trans_masculine(cls) -> Gender:
-        return cls(name="transmasculine", pronoun=cls.Pronoun(subjective="he", objective="him", possessive="his"))
-
-    @cached_property
     def female(cls) -> Gender:
         return cls(name="female", pronoun=cls.Pronoun(subjective="she", objective="her", possessive="her"))
 
     @cached_property
-    def trans_femenine(cls) -> Gender:
-        return cls(name="transfemenine", pronoun=cls.Pronoun(subjective="she", objective="her", possessive="her"))
-
-    @cached_property
     def non_binary(cls) -> Gender:
-        return cls(name="nonbinary", pronoun=cls.Pronoun(subjective="they", objective="them", possessive="their"))
-
-    @cached_property
-    def other(cls) -> Gender:
-        return cls(name="other")
+        return cls(name="enby", pronoun=cls.Pronoun(subjective="they", objective="them", possessive="their"))
 
     @cached_property
     def unknown(cls) -> Gender:
@@ -426,4 +414,3 @@ class Gender(ReprMixin, metaclass=GenderMeta):
 
     def __init__(self, name: str, pronoun: Pronoun = None) -> None:
         self.name, self.pronoun = name, pronoun
-

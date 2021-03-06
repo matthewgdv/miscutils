@@ -4,6 +4,7 @@ __all__ = [
     "Timer", "Supressor", "FilePrintRedirector", "StreamPrintRedirector", "NullContext", "Profiler", "Printer",
     "NestedParser",
     "ReprMixin", "CopyMixin", "StreamReplacerMixin",
+    "PostInitMeta",
     "cached_property",
 ]
 
@@ -12,5 +13,7 @@ from .base import Version, Counter, PercentagePrinter, WindowsEnVars, WhoCalledM
 from .context import Timer, Supressor, FilePrintRedirector, StreamPrintRedirector, NullContext, Profiler, Printer
 from .parser import NestedParser
 from .mixin import ReprMixin, CopyMixin, StreamReplacerMixin
+from .meta import PostInitMeta
 
 from subtypes import cached_property
+

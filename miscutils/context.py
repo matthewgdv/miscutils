@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import io
 from functools import total_ordering
-import os
-import sys
 import time
 import warnings
-from typing import Any, Optional, Callable, Sequence
+from typing import Any, Optional, Callable
 
 import pyinstrument
 
@@ -43,7 +41,7 @@ class Timer:
     """
 
     def __init__(self, timeout: int = None, retry_delay: int = None) -> None:
-        self.period: float = None
+        self.period: Optional[float] = None
         self.timeout, self.retry_delay = timeout, retry_delay
         self.start = time.time()
 
