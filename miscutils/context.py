@@ -4,26 +4,14 @@ import io
 from functools import total_ordering
 import time
 import warnings
-from typing import Any, Optional, Callable
+from typing import Any, Optional
 
 import pyinstrument
 
 from maybe import Maybe
 from pathmagic import Dir, PathLike
 
-from .mixin import StreamReplacerMixin
-
-
-class Printer(StreamReplacerMixin):
-    def __init__(self, formatter: Callable[[str], str]) -> None:
-        self.formatter = formatter
-
-    def write(self, text: str) -> None:
-        self.stream.write(self.formatter(text))
-
-    @classmethod
-    def from_indentation(cls, level: int = 1, indentation_token: str = " "*4) -> Printer:
-        return cls(formatter=lambda text: f"{indentation_token*level}{text}")
+from .mixin import StdOutReplacerMixin, StdErrReplacerMixin
 
 
 class Profiler(pyinstrument.Profiler):
@@ -96,41 +84,43 @@ class Timer:
         return float(self) < other
 
 
-class Supressor(StreamReplacerMixin):
-    """Context manager that suppresses all output to sys.stdout while in scope."""
+class Supressor(StdOutReplacerMixin):
+    """Context manager that suppresses all output to sys.stdout and all warnings while in scope."""
+
+    def __init__(self):
+        super().__init__()
+        self.catch_warnings = warnings.catch_warnings()
 
     def __enter__(self) -> Supressor:
         super().__enter__()
-
-        self.filters = warnings.filters.copy()
+        self.catch_warnings.__enter__()
         warnings.filterwarnings("ignore")
-
         return self
 
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
         super().__exit__(ex_type=ex_type, ex_value=ex_value, ex_traceback=ex_traceback)
-        warnings.filters = self.filters
+        self.catch_warnings.__exit__(ex_type, ex_value, ex_traceback)
 
     def write(self, text: str) -> None:
         pass
 
 
-class FilePrintRedirector(StreamReplacerMixin):
+class StdOutFileRedirector(StdOutReplacerMixin):
     """Context manager that redirects sys.stdout to the given file while in scope. Optionally opens the file on exiting."""
 
-    def __init__(self, outfile: PathLike = None, append: bool = False, openfile: bool = True) -> None:
-        self.outfile = Dir.from_pathlike(outfile) if outfile is not None else Dir.from_desktop().new_file("print_redirection", "txt")
+    def __init__(self, file: PathLike = None, append: bool = False, openfile: bool = True) -> None:
+        self.file = Dir.from_pathlike(file) if file is not None else Dir.from_desktop().new_file("print_redirection", "txt")
         self.append, self.openfile = append, openfile
 
         if not append:
-            self.outfile.content = None
+            self.file.content = None
 
     def __str__(self) -> str:
-        return self.outfile.content
+        return self.file.content
 
-    def __enter__(self) -> FilePrintRedirector:
+    def __enter__(self) -> StdOutFileRedirector:
         super().__enter__()
-        self.out = open(self.outfile, "a" if self.append else "w")
+        self.out = open(self.file, "a" if self.append else "w")
         return self
 
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
@@ -138,29 +128,44 @@ class FilePrintRedirector(StreamReplacerMixin):
         self.out.close()
 
         if self.openfile:
-            self.outfile.start()
+            self.file.start()
 
     def write(self, text: str) -> None:
         self.out.write(text)
 
 
-class StreamPrintRedirector(StreamReplacerMixin):
+class BaseStreamRedirector:
     """Context manager that redirects sys.stdout to the given stream while in scope."""
 
     def __init__(self, stream: io.StringIO = None) -> None:
-        self.out = Maybe(stream).else_(io.StringIO())
+        self.out = stream if stream is not None else io.StringIO()
         self.data: Optional[str] = None
 
     def __str__(self) -> str:
         return self.data
 
     def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
-        super().__exit__(ex_type=ex_type, ex_value=ex_value, ex_traceback=ex_traceback)
+        # noinspection PyUnresolvedReferences
+        super().__exit__(ex_type, ex_value, ex_traceback)
+        self.data = self.out.getvalue()
         self.out.close()
 
     def write(self, text: str) -> None:
-        self.data += text
         self.out.write(text)
+
+    def flush(self) -> None:
+        self.out.flush()
+
+    def close(self) -> None:
+        self.out.close()
+
+
+class StdOutStreamRedirector(BaseStreamRedirector, StdOutReplacerMixin):
+    pass
+
+
+class StdErrStreamRedirector(BaseStreamRedirector, StdErrReplacerMixin):
+    pass
 
 
 class NullContext:

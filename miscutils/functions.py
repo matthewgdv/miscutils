@@ -4,13 +4,14 @@ import ast
 import inspect
 import os
 import sys
-import traceback
 from typing import Optional, Any, Callable, Type
 from collections.abc import Iterable
 from pathlib import Path
 
 from subtypes import Str
 from pathmagic import Dir
+
+from .context import StdErrStreamRedirector
 
 
 def is_running_in_ipython() -> bool:
@@ -52,8 +53,12 @@ def class_name(candidate: Any) -> str:
         return Str(cls).slice.after_last("'").slice.before_first("'")
 
 
-def traceback_from_exception(ex: Exception) -> str:
-    return "".join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
+def stringify_exception(ex: Exception) -> str:
+    # return "".join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
+    with StdErrStreamRedirector() as redirector:
+        sys.excepthook(type(ex), ex, ex.__traceback__)
+
+    return str(redirector)
 
 
 def beep() -> None:
@@ -65,7 +70,7 @@ def beep() -> None:
         print("\a")
 
 
-def get_short_lambda_source(lambda_func: Callable) -> Optional[str]:
+def lambda_source(lambda_func: Callable) -> Optional[str]:
     """Return the source of a (short) lambda function. If it's impossible to obtain, return None."""
     try:
         source_lines, _ = inspect.getsourcelines(lambda_func)
