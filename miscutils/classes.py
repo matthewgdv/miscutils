@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import base64
-import functools
-import inspect
+from functools import total_ordering
 import os
 from typing import Optional, Tuple, List, Type, Any, Callable, cast, Union, Sequence, Dict
 from math import inf as infinity
+import time
 
-import numpy as np
+import pyinstrument
 from gender_guesser.detector import Detector as GenderDetector
 
 from maybe import Maybe
@@ -17,7 +17,70 @@ from .mixin import ReprMixin
 from .functions import class_name
 
 
-@functools.total_ordering
+@total_ordering
+class Timer:
+    """
+    A timer that begins on instanciation and can be converted to a string, int, or float. It can be reset by calling it.
+    When used as a context manager, upon exiting sets a Timer.period attribute indicating the timer's value at point of exit. Entering does not reset the timer.
+    """
+
+    def __init__(self, timeout: int = None, retry_delay: int = None) -> None:
+        self.period: Optional[float] = None
+        self.timeout, self.retry_delay = timeout, retry_delay
+        self.start = time.time()
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(seconds={int(self)})"
+
+    def __str__(self) -> str:
+        return str(float(self))
+
+    def __bool__(self) -> bool:
+        return self.timeout is None or self < self.timeout
+
+    def __iter__(self) -> Timer:
+        self._fresh = True
+        return self
+
+    def __next__(self) -> float:
+        if self.timeout is None:
+            raise RuntimeError(f"Cannot iterate over a {type(self).__name__} that does not have a timeout set.")
+
+        if float(self) + (self.retry_delay or 0) > self.timeout:
+            raise StopIteration
+
+        if self._fresh:
+            self._fresh = False
+        elif self.retry_delay is not None:
+            time.sleep(self.retry_delay)
+
+        return float(self)
+
+    def __int__(self) -> int:
+        return int(float(self))
+
+    def __float__(self) -> float:
+        return time.time() - self.start
+
+    def __call__(self) -> Timer:
+        self.start = time.time()
+        return self
+
+    def __enter__(self) -> Timer:
+        self.period = None
+        return self
+
+    def __exit__(self, ex_type: Any, value: Any, trace: Any) -> None:
+        self.period = float(self)
+
+    def __eq__(self, other: Any) -> bool:
+        return int(self) == other
+
+    def __lt__(self, other: Any) -> bool:
+        return float(self) < other
+
+
+@total_ordering
 class Version:
     """Version class with comparison operators, string conversion using a customizable wildcard, and attribute control."""
     class Update(Enum):
@@ -106,60 +169,6 @@ class Version:
         return cls(major=major, minor=minor, micro=micro, wildcard=wildcard)
 
 
-class Coordinates:
-    def __init__(self, x: int, y: int) -> None:
-        self.array = np.array([x, y])
-
-    def __repr__(self) -> str:
-        return f"{type(self).__name__}(x={self.x}, y={self.y})"
-
-    def __bool__(self) -> bool:
-        return bool(self.x or self.y)
-
-    def __eq__(self, other: Coordinates) -> bool:
-        return self.x == other.x and self.y == other.y
-
-    def __add__(self, other: Coordinates) -> Coordinates:
-        x, y = self.array + (other.array if isinstance(other, Coordinates) else other)
-        return type(self)(x, y)
-
-    def __sub__(self, other: Coordinates) -> Coordinates:
-        x, y = self.array - (other.array if isinstance(other, Coordinates) else other)
-        return type(self)(x, y)
-
-    def __mul__(self, other: Coordinates) -> Coordinates:
-        x, y = self.array * (other.array if isinstance(other, Coordinates) else other)
-        return type(self)(x, y)
-
-    def __truediv__(self, other: Coordinates) -> Coordinates:
-        x, y = self.array / (other.array if isinstance(other, Coordinates) else other)
-        return type(self)(x, y)
-
-    def __floordiv__(self, other: Coordinates) -> Coordinates:
-        x, y = self.array // (other.array if isinstance(other, Coordinates) else other)
-        return type(self)(x, y)
-
-    def __mod__(self, other: Coordinates) -> Coordinates:
-        x, y = self.array % (other.array if isinstance(other, Coordinates) else other)
-        return type(self)(x, y)
-
-    @property
-    def x(self) -> int:
-        return int(self.array[0])
-
-    @x.setter
-    def x(self, x: int) -> None:
-        self.array[0] = x
-
-    @property
-    def y(self) -> int:
-        return int(self.array[1])
-
-    @y.setter
-    def y(self, y: int) -> None:
-        self.array[1] = y
-
-
 class Counter:
     """Counter implementation that can have a limit set and can then be iterated over. Start value can also be set."""
 
@@ -199,6 +208,35 @@ class Counter:
         """Reset the counter to the starting value."""
         self.value = self.start
         return self.value
+
+
+class Profiler(pyinstrument.Profiler):
+    """A subclass of pyinstrument.Profiler with a better __str__ method."""
+
+    def __str__(self) -> str:
+        return self.output_text(unicode=True, color=True)
+
+
+class Base64:
+    def __init__(self, raw_bytes: bytes) -> None:
+        self.bytes = raw_bytes
+
+    def __bytes__(self) -> bytes:
+        return self.bytes
+
+    def to_utf8(self) -> str:
+        return self.bytes.decode("utf-8")
+
+    def to_b64(self) -> str:
+        return base64.urlsafe_b64encode(self.bytes).decode("utf-8")
+
+    @classmethod
+    def from_utf8(cls, utf8: str) -> Base64:
+        return cls(raw_bytes=utf8.encode("utf-8"))
+
+    @classmethod
+    def from_b64(cls, b64: str) -> Base64:
+        return cls(raw_bytes=base64.urlsafe_b64decode(b64))
 
 
 class PercentagePrinter:
@@ -260,24 +298,6 @@ class WindowsEnVars:
 
     def keys(self) -> List[str]:
         return list(os.environ)
-
-
-class WhoCalledMe:
-    """Utility class to print the stack_trace from the location of its instanciation."""
-
-    def __init__(self, full_trace: bool = True) -> None:
-        self.stack = inspect.stack()
-
-        if not full_trace:
-            print(f"'{self.stack[1][3]}' called by: '{self.stack[2][3]}'")
-        else:
-            statement = f"'{self.stack[1][3]}'"
-            for caller in self.stack[2:]:
-                statement += f" <- '{caller[3]}'"
-                if caller[3] == "run_code":
-                    break
-
-            print(statement)
 
 
 class OneOrMany:
@@ -347,28 +367,6 @@ class OneOrMany:
             raise ValueError(f"Expected an iterable with one value or empty from {candidate}, got {len(as_list)}.")
 
 
-class Base64:
-    def __init__(self, raw_bytes: bytes) -> None:
-        self.bytes = raw_bytes
-
-    def __bytes__(self) -> bytes:
-        return self.bytes
-
-    def to_utf8(self) -> str:
-        return self.bytes.decode("utf-8")
-
-    def to_b64(self) -> str:
-        return base64.urlsafe_b64encode(self.bytes).decode("utf-8")
-
-    @classmethod
-    def from_utf8(cls, utf8: str) -> Base64:
-        return cls(raw_bytes=utf8.encode("utf-8"))
-
-    @classmethod
-    def from_b64(cls, b64: str) -> Base64:
-        return cls(raw_bytes=base64.urlsafe_b64decode(b64))
-
-
 class GenderMeta(type):
     Pronoun: Type[Gender.Pronoun]
 
@@ -414,3 +412,25 @@ class Gender(ReprMixin, metaclass=GenderMeta):
 
     def __init__(self, name: str, pronoun: Pronoun = None) -> None:
         self.name, self.pronoun = name, pronoun
+
+
+class NullContext:
+    """Context manager that does nothing. Attributes can be set and accessed and it can be called and it will only ever return itself without doing anything."""
+
+    def __bool__(self) -> bool:
+        return False
+
+    def __getattr__(self, attr: str) -> NullContext:
+        return self
+
+    def __setattr__(self, name: str, val: Any) -> None:
+        pass
+
+    def __call__(self, *args: Any, **kwargs: Any) -> NullContext:
+        return self
+
+    def __enter__(self) -> NullContext:
+        return self
+
+    def __exit__(self, ex_type: Any, ex_value: Any, ex_traceback: Any) -> None:
+        pass

@@ -9,6 +9,10 @@ def test_executed_within_user_tree():  # synced
     assert True
 
 
+def test_file_stem_of_class():  # synced
+    assert True
+
+
 def test_issubclass_safe():  # synced
     assert True
 
@@ -21,9 +25,9 @@ def test_class_name():  # synced
     assert True
 
 
-def test_beep():  # synced
+def test_stringify_exception():  # synced
     assert True
 
 
-def test_get_short_lambda_source():  # synced
+def test_lambda_source():  # synced
     assert True

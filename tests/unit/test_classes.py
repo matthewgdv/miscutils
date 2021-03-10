@@ -1,11 +1,32 @@
 # import pytest
 
 
-class Testcached_property:
-    def test___set_name__(self):  # synced
+class TestTimer:
+    def test___str__(self):  # synced
         assert True
 
-    def test___get__(self):  # synced
+    def test___bool__(self):  # synced
+        assert True
+
+    def test___iter__(self):  # synced
+        assert True
+
+    def test___next__(self):  # synced
+        assert True
+
+    def test___int__(self):  # synced
+        assert True
+
+    def test___float__(self):  # synced
+        assert True
+
+    def test___call__(self):  # synced
+        assert True
+
+    def test___eq__(self):  # synced
+        assert True
+
+    def test___lt__(self):  # synced
         assert True
 
 
@@ -46,39 +67,7 @@ class TestVersion:
     def test_copy(self):  # synced
         assert True
 
-    def test_from_string():  # synced
-        assert True
-
-
-class TestCoordinates:
-    def test___bool__(self):  # synced
-        assert True
-
-    def test___eq__(self):  # synced
-        assert True
-
-    def test___add__(self):  # synced
-        assert True
-
-    def test___sub__(self):  # synced
-        assert True
-
-    def test___mul__(self):  # synced
-        assert True
-
-    def test___truediv__(self):  # synced
-        assert True
-
-    def test___floordiv__(self):  # synced
-        assert True
-
-    def test___mod__(self):  # synced
-        assert True
-
-    def test_x(self):  # synced
-        assert True
-
-    def test_y(self):  # synced
+    def test_from_string(self):  # synced
         assert True
 
 
@@ -105,7 +94,40 @@ class TestCounter:
         assert True
 
 
-class TestEnvironmentVariables:
+class TestProfiler:
+    def test___str__(self):  # synced
+        assert True
+
+
+class TestBase64:
+    def test___bytes__(self):  # synced
+        assert True
+
+    def test_to_utf8(self):  # synced
+        assert True
+
+    def test_to_b64(self):  # synced
+        assert True
+
+    def test_from_utf8(self):  # synced
+        assert True
+
+    def test_from_b64(self):  # synced
+        assert True
+
+
+class TestPercentagePrinter:
+    def test___iter__(self):  # synced
+        assert True
+
+    def test___next__(self):  # synced
+        assert True
+
+
+class TestWindowsEnVars:
+    class TestScope:
+        pass
+
     def test___call__(self):  # synced
         assert True
 
@@ -123,10 +145,6 @@ class TestEnvironmentVariables:
 
     def test_keys(self):  # synced
         assert True
-
-
-class TestWhoCalledMe:
-    pass
 
 
 class TestOneOrMany:
@@ -155,23 +173,43 @@ class TestOneOrMany:
         assert True
 
 
-class TestBase64:
-    def test___bytes__(self):  # synced
+class TestGenderMeta:
+    def test_from_name(self):  # synced
         assert True
 
-    def test_to_utf8(self):  # synced
+    def test_male(self):  # synced
         assert True
 
-    def test_to_b64(self):  # synced
+    def test_female(self):  # synced
         assert True
 
-    def test_from_utf8():  # synced
+    def test_non_binary(self):  # synced
         assert True
 
-    def test_from_b64():  # synced
+    def test_unknown(self):  # synced
+        assert True
+
+    def test__detector(self):  # synced
+        assert True
+
+    def test__mappings(self):  # synced
         assert True
 
 
 class TestGender:
-    def test_from_name():  # synced
+    class TestPronoun:
+        pass
+
+
+class TestNullContext:
+    def test___bool__(self):  # synced
+        assert True
+
+    def test___getattr__(self):  # synced
+        assert True
+
+    def test___setattr__(self):  # synced
+        assert True
+
+    def test___call__(self):  # synced
         assert True

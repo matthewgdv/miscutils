@@ -1,14 +1,13 @@
 from typing import Any, Callable
-from functools import wraps
+from wrapt import decorator
 
 
 class PostInitMeta(type):
     _post_init_registry: dict[Any, int] = {}
 
-    def post_init_soon(cls, func: Callable) -> Callable:
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            instance = args[0]
+    def post_init_soon(cls) -> Callable:
+        @decorator
+        def wrapper(func, instance, args, kwargs):
             cls._post_init_registry[instance] = cls._post_init_registry.get(instance, 0) + 1
 
             ret = func(*args, **kwargs)
@@ -23,4 +22,4 @@ class PostInitMeta(type):
         return wrapper
 
     def __init__(cls, name: str, bases: tuple, namesapce: dict) -> None:
-        cls.__init__ = cls.post_init_soon(cls.__init__)
+        cls.__init__ = cls.post_init_soon()(cls.__init__)

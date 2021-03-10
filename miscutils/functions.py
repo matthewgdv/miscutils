@@ -4,14 +4,12 @@ import ast
 import inspect
 import os
 import sys
+import traceback
 from typing import Optional, Any, Callable, Type
 from collections.abc import Iterable
 from pathlib import Path
 
-from subtypes import Str
 from pathmagic import Dir
-
-from .context import StdErrStreamRedirector
 
 
 def is_running_in_ipython() -> bool:
@@ -47,27 +45,11 @@ def is_non_string_iterable(candidate: Any) -> bool:
 
 def class_name(candidate: Any) -> str:
     cls = candidate if isinstance(candidate, type) or issubclass_safe(candidate, type) else type(candidate)
-    try:
-        return cls.__name__
-    except AttributeError:
-        return Str(cls).slice.after_last("'").slice.before_first("'")
+    return cls.__name__
 
 
 def stringify_exception(ex: Exception) -> str:
-    # return "".join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
-    with StdErrStreamRedirector() as redirector:
-        sys.excepthook(type(ex), ex, ex.__traceback__)
-
-    return str(redirector)
-
-
-def beep() -> None:
-    """Cross-platform implementation for producing a beeping sound. Only works on windows when used in an interactive IPython session (jupyter notebook)."""
-    if is_running_in_ipython():
-        import winsound
-        winsound.Beep(frequency=440, duration=2*1000)
-    else:
-        print("\a")
+    return "".join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__))
 
 
 def lambda_source(lambda_func: Callable) -> Optional[str]:
