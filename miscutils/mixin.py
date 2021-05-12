@@ -26,13 +26,15 @@ class ParametrizableMixin:
             self.cls, self.param = cls, param
 
         def __repr__(self) -> str:
-            return f"{repr(self.cls)}[{repr(self.params)}]"
+            return f"{repr(self.cls)}[{repr(self.param)}]"
 
         def __call__(self, *args, **kwargs) -> T:
-            return self.cls(*args, **kwargs).parametrize(self.param)
+            ret = self.cls(*args, **kwargs)
+            ret.parametrize(self.param)
+            return ret
 
-    def __class_getitem__(cls, item: Any) -> ParametrizableMixin.ParametrizedProxy:
-        return cls.ParametrizedProxy(cls=cls, param=item)
+    def __class_getitem__(cls, param: Any) -> ParametrizableMixin.ParametrizedProxy:
+        return cls.ParametrizedProxy(cls=cls, param=param)
 
     def __getitem__(self, param) -> ParametrizableMixin:
         self.parametrize(param)

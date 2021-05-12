@@ -4,7 +4,7 @@ import io
 import os
 import sys
 import warnings
-from typing import Optional, TextIO, Any
+from typing import TextIO, Any
 
 from pathmagic import Dir, PathLike
 

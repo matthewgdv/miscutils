@@ -1,13 +1,6 @@
-colorama
-cryptography
-cursor
-dill
 gender-guesser
 maybe-else
-numpy
 pathmagic
 pyinstrument
 pysubtypes
-readchar
-setuptools
 wrapt
